@@ -1,0 +1,13 @@
+*~
+\#*\#
+.\#*
+_site/
+build/
+*.out
+*.exe
+*.o
+*.a
+*.so
+*.log
+.clangd/
+.cache/

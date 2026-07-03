@@ -1,0 +1,67 @@
+MapperType = {
+  NONE, MBC1, MBC2, MBC3,
+  MBC5, MBC6, MBC7, MMM01,
+  HuC1, HuC3, TAMA5, CAMERA
+}
+
+Features = {
+  ram :    Bool
+  battery: Bool
+  timer:   Bool
+  rumble:  Bool
+  sensor:  Bool
+}
+
+parse_type(byte) -> (MapperType, Features)
+
+parse_type(0x00) = (NONE, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x01) = (MBC1, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x02) = (MBC1, {ram=T, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x03) = (MBC1, {ram=T, battery=T, timer=F, rumble=F, sensor=F})
+parse_type(0x05) = (MBC2, {ram=T, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x08) = (NONE, {ram=T, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x09) = (NONE, {ram=T, battery=T, timer=F, rumble=F, sensor=F})
+parse_type(0x0B) = (MMM01, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x0C) = (MMM01, {ram=T, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x0D) = (MMM01, {ram=T, battery=T, timer=F, rumble=F, sensor=F})
+parse_type(0x0F) = (MBC3, {ram=F, battery=T, timer=T, rumble=F, sensor=F})
+parse_type(0x10) = (MBC3, {ram=T, battery=T, timer=T, rumble=F, sensor=F})
+parse_type(0x11) = (MBC3, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x12) = (MBC3, {ram=T, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x13) = (MBC3, {ram=T, battery=T, timer=F, rumble=F, sensor=F})
+parse_type(0x19) = (MBC5, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x1A) = (MBC5, {ram=T, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x1B) = (MBC5, {ram=T, battery=T, timer=F, rumble=F, sensor=F})
+parse_type(0x1C) = (MBC5, {ram=F, battery=F, timer=F, rumble=T, sensor=F})
+parse_type(0x1D) = (MBC5, {ram=T, battery=F, timer=F, rumble=T, sensor=F})
+parse_type(0x1E) = (MBC5, {ram=T, battery=T, timer=F, rumble=T, sensor=F})
+parse_type(0x20) = (MBC6, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0x22) = (MBC7, {ram=T, battery=T, timer=F, rumble=T, sensor=T})
+parse_type(0xFC) = (CAMERA, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0xFD) = (TAMA5, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0xFE) = (HuC3, {ram=F, battery=F, timer=F, rumble=F, sensor=F})
+parse_type(0xFF) = (HuC1, {ram=T, battery=T, timer=F, rumble=F, sensor=F})
+
+
+parse_rom_size : Byte → (Int, Int)
+                         размер  банков
+
+parse_rom_size(0x00) = (32_768,  2)
+parse_rom_size(0x01) = (65_536,  4)
+parse_rom_size(0x02) = (131_072, 8)
+parse_rom_size(0x03) = (262_144, 16)
+parse_rom_size(0x04) = (524_288, 32)
+parse_rom_size(0x05) = (1_048_576, 64)
+parse_rom_size(0x06) = (2_097_152, 128)
+parse_rom_size(0x07) = (4_194_304, 256)
+parse_rom_size(0x08) = (8_388_608, 512)
+parse_rom_size(0x52) = (1_153_433.6, 72)
+parse_rom_size(0x53) = (1_258_291.2, 80)
+parse_rom_size(0x54) = (1_572_864, 96)
+
+0x00 → 0    
+0x02 → 8 KB
+0x03 → 32 KB
+0x04 → 128 KB
+0x05 → 64 KB
+0x06 -> 

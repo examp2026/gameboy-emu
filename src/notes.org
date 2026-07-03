@@ -1,0 +1,12 @@
+* TODO Cartridge [0/3]
+** TODO Step 1: Make stubs in cartridge.cpp [/]
+   - [ ] Add uint8_t Cartridge::read(uint16_t address) method
+   - [ ] Add void Cartridge::write(uint16_t address, uint8_t value) method
+   - [ ] Compile project ww any %
+** TODO Step 2: Make cartridge business logic [/]
+   - [ ] Check address range in read() and redirect to mbc->read()
+   - [ ] Redirect write() to mbc->write()
+** TODO Step 3: Cover with tests in cartridge_test.cpp [/]
+   - [ ] Make test of reading from ROM through the Cartridge
+   - [ ] Make test of writing/reading from SRAM through the Cartridge
+   - [ ] Run ./global_tests and get the "Cartridge tests passed"

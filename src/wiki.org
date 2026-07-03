@@ -1,0 +1,74 @@
+* Git Workflow
+
+** Guide
+
+*** 1. Local initialization and first commit
+    From project root directory execute:
+    #+begin_src bash
+    git init
+    git add .
+    git commit -m "feat: initial cartidge structures and core logic"
+    #+end_src
+
+*** 2. Linking with a GitHub and first push
+    Create empty repository =project-name= on GitHub and link him:
+    #+begin_src bash
+    git remote add origin git@github.com/YOUR_USERNAME/project-name.git
+    git branch -M origin main
+    #+end_src
+
+---
+
+** Cribs: Daily workflow
+
+| Action | Command | Context |
+| :----: | :-----: | :-----: |
+| File status check | =git status= | Check the changes |
+| Add specific file | =git add src/specific_file.cpp= | Prepare for commit |
+| Record a micro-stage | =git commit -m "feat: add sram read logic"= | Describe the changes |
+| Send the code to the GitHub | =git push= | Make the backup |
+
+** .gitignore
+
+*** .gitignore content
+    #+begin_src plaintext 
+    # emacs backup files
+    *~
+    #*#
+    .#*
+    _site/
+
+    # Build results and binaries (compilation artifacts)
+    build/
+    *.out
+    *.exe
+    *.o
+    *.a
+    *.so
+
+    # Logs and cache
+    *.log
+    .clangd/
+    .cache/
+    #+end_src
+
+* Test-writing
+
+** AAA-pattern (Arrange, Act, Assert)
+   1. *Arrange* - Preparing objects to the valid state, test-data initialization.
+   2. *Act* - Calling method under test and saving the result.
+   3. *Assert* - Strict verification of the result against the expected value using the `assert()` macro.
+
+#+BEGIN_SRC cpp
+void test_cartridge_rom_read()
+{
+    //1. Arrange
+    Cartridge cartridge = create_test_cartridge_with_data();
+
+    //2. Act
+    uint8_t value = cartridge.read(0x4000);
+
+    //3. Assert
+    assert(value = 0x55);
+}
+#+END_SRC
