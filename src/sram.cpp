@@ -1,12 +1,26 @@
 #include "sram.h"
 
-uint8_t Sram::read(size_t index)
+uint8_t Sram::read(size_t real_index)
 {
-    return data[index];
+    if(real_index >= data.size()){
+	return 0xFF;
+    }
+    
+    return data[real_index];
 }
 
-void Sram::write(size_t index, uint8_t value){
-    data[index] = value;
+void Sram::write(size_t real_index, uint8_t value){
+    if(real_index >= data.size()){
+	return;
+    }
+    
+    data[real_index] = value;
+}
+
+size_t Sram::size()
+{
+    size_t total_banks = data.size() / 0x2000;
+    return total_banks;
 }
 
 void Sram::mock_load()

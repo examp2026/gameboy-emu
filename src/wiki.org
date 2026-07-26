@@ -1,3 +1,71 @@
+* Constructors
+
+** Common patterns:
+
+** 1. Default
+
+    #+begin_src cpp
+      // Header (.h)
+      class Cartridge {
+      public:
+	 Cartridge() = default;
+      };
+    #+end_src
+
+    Usage:
+    
+    #+begin_src cpp
+      Cartridge cart;
+    #+end_src
+
+---
+    
+** 2. Constructor with parameters
+
+    #+begin_src cpp
+      // Header (.h)
+
+      class Cartridge {
+      public:
+	    Cartridge(Sram& sram);
+      private:
+	    Sram& sram;
+      };
+    #+end_src
+
+    #+begin_src cpp
+      // Source (.cpp)
+
+      Cartridge::Cartridge(Sram& sram)
+	  : sram(sram)
+      {
+      }
+    #+end_src
+
+    Usage:
+
+    #+begin_src cpp
+      Sram global_sram;
+      Cartridge cartrdige(global_sram);
+    #+end_src
+
+---
+
+** 3. Initializing multiple members
+
+    #+begin_src cpp
+      CPU::CPU(Bus& bus)
+	  : bus(bus),
+	    pc(0x100),
+	    sp(0xFFFE)
+      {
+      }
+    #+end_src
+
+    Rules:
+    - Initialize all members in the initialization list.
+    - Put logic inside {}.
+    
 * Git Workflow
 
 ** Guide
@@ -72,3 +140,33 @@ void test_cartridge_rom_read()
     assert(value = 0x55);
 }
 #+END_SRC
+
+* safe_seek wrapper (temp note, evaquate)
+
+#+begin_src cpp
+#include <fstream>
+#include <optional>
+
+// Returns opened stream size
+std::streamsize get_stream_size(std::fstream& fs) {
+    //Memorizing current position for jump back after r/w
+    auto current_pos = fs.tellg(); 
+    
+    fs.seekg(0, std::ios::end);
+    std::streamsize size = fs.tellg();
+    
+    fs.seekg(current_pos); // Returns cursor back
+    return size;
+}
+
+// Safe wrapper
+bool safe_seek(std::fstream& fs, std::streamoff offset) {
+    if (offset < 0 || offset >= get_stream_size(fs)) {
+        return false; // UB, jump is canceled
+    }
+    
+    // g/p jumps
+    fs.seekg(offset);
+    fs.seekp(offset);
+    return true;
+}

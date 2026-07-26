@@ -1,10 +1,21 @@
-#include <rom.h>
+#include "rom.h"
 
-uint8_t read(uint16_t address){
-    return data[address];
+uint8_t Rom::read(uint32_t real_index)
+{
+    if(real_index >= data.size()){
+	return 0xFF;
+    }	
+    return data[real_index];
 }
 
-void mock_load(){
+size_t Rom::size()
+{
+    size_t total_banks = data.size() / 0x4000;
+    return total_banks;
+}
+
+void Rom::mock_load()
+{
     data.resize(65536);
     for(int i=16384; i<=32767; ++i)
         data[i] = 0x01;

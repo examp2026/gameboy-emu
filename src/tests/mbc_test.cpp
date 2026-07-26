@@ -1,48 +1,109 @@
 #include <cassert>
 #include <iostream>
+#include <cstdint>
 #include "../mbc.h"
 
-void test_ram_enable()
+void test_mbc_write()
 {
-    Sram sram;
-    Mbc mbc(sram);
 
-    assert(mbc.is_ram_enabled() == false);
-
-    mbc.write(0x1000, 0x0A);
-    assert(mbc.is_ram_enabled() == true);
-
-    mbc.write(0x1500, 0x55);
-    assert(mbc.is_ram_enabled() == false);
 }
 
-void test_ram_banking()
+//--------------------------------------------------------------------
+
+void test_ram_flag_enable()
 {
-    Sram sram;
-    Mbc mbc(sram);
+    Mbc mbc(0x00, 0x00, 0x02, 0x04);
+    assert(mbc.map_address(0xA000) == 0xFFFFFFFF);
+    assert(mbc.map_address(0xBFFF) == 0xFFFFFFFF);
+    
+    mbc.write(0x0000, 0x0A);
+    assert(mbc.map_address(0xA000) == 0x0000);
 
-    mbc.write(0x2000, 0x8F);
-    assert(mbc.get_rom_bank() == 0x8F);
+    mbc.write(0x0000, 0x00);
 
-    mbc.write(0x3000, 0x9F);
-    assert(mbc.get_rom_bank() == 0x18F);
+    mbc.write(0x1FFF, 0x0A);
+    assert(mbc.map_address(0xBFFF) == 0x1FFF);
 }
 
-void test_ram_banking_truncation()
-{
-    Sram sram;
-    Mbc mbc(sram);
+//--------------------------------------------------------------------
 
-    mbc.write(0x4500, 0x55);
-    assert(mbc.get_ram_bank() == 0x05);
+void test_update_rom_bank_low_byte()
+{
+    Mbc mbc(0x00, 0x00, 0x02, 0x04);
+    uint32_t expected_bank = 0;
+    uint32_t bank_size = 0x4000;
+
+    assert(mbc.map_address(0x0000) == 0x0000);
+    assert(mbc.map_address(0x3FFF) == 0x3FFF);
+
+    uint32_t written_bank = 5;
+    expected_bank = 1;
+    mbc.write(0x2000, written_bank);
+    assert(mbc.map_address(0x4000) == (expected_bank * bank_size));
+    assert(mbc.map_address(0x7FFF) ==
+	   (expected_bank * bank_size) + 0x3FFF);
+
+    expected_bank = 1;
+    mbc.write(0x2000, expected_bank);
+    assert(mbc.map_address(0x4000) == (expected_bank * bank_size));
+    
 }
+
+//--------------------------------------------------------------------
+
+void test_rom_bank_high_bit()
+{
+    Mbc mbc(0x00, 0x00, 0x200, 0x04);
+    mbc.write(0x2000, 0x01);
+    mbc.write(0x3000, 0x01);
+
+    uint32_t expected_bank = 257;
+    uint32_t bank_size = 16384;
+    
+    assert(mbc.map_address(0x4000) == (expected_bank * bank_size));
+}
+
+//--------------------------------------------------------------------
+
+void test_rom_mapping_default_bank()
+{
+    Mbc mbc(0x00, 0x00, 0x02, 0x04);
+    assert(mbc.map_address(0x4000) == 0x4000);
+}
+
+//--------------------------------------------------------------------
+
+void test_sram_bank_map_address()
+{
+    Mbc mbc (0x00, 0x00, 0x02, 0x04);
+    uint32_t written_bank = 5;
+    uint32_t expected_bank = 0;
+    uint32_t bank_size = 0x2000;
+    
+    mbc.write(0xA000, written_bank);
+    assert(mbc.map_address(0xA000) == (expected_bank * bank_size));
+    mbc.write(0xBFFF, written_bank);
+    assert(mbc.map_address(0xBFFF) == (expected_bank * bank_size));
+
+    expected_bank = 3;
+    mbc.write(0xA000, expected_bank);
+    assert(mbc.map_address(0xA000) == (expected_bank * bank_size));
+    expected_bank = 2;
+    mbc.write(0xAFFF, expected_bank);
+    assert(mbc.map_address(0xAFFF) == (expected_bank * bank_size));
+    expected_bank = 1;
+    mbc.write(0xBFFF, expected_bank);
+    assert(mbc.map_address(0xBFFF) == (expected_bank * bank_size));
+}
+
+//--------------------------------------------------------------------
 
 int run_mbc_tests()
 {
-    test_ram_enable();
-    test_ram_banking();
-    test_ram_banking_truncation();
-
-    std::cout << "MBC tests passed." << std::endl;
-    return 0;
+    test_ram_flag_enable();
+    test_update_rom_bank_low_byte();
+    test_rom_bank_high_bit();
+    test_rom_mapping_default_bank();
+    
+    return 0;   
 }
