@@ -41,7 +41,17 @@ void test_bus_read()
     bus.write(0xBFFF, 0xFF);
     assert(bus.read(0xBFFF) == 0xFF);
 
+    bus.write(0xFF00, 0xAA);
+    assert(bus.read(0xFF00) == 0xAA);
+
+    bus.write(0xFF35, 0xBB);
+    assert(bus.read(0xFF35) == 0xBB);
+
+    bus.write(0xFF70, 0xCC);
+    assert(bus.read(0xFF70) == 0xCC);
+
 }
+
 
 int run_bus_tests()
 {

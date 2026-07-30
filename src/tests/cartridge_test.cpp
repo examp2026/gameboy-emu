@@ -40,7 +40,6 @@ void test_cartridge_parse_header()
     
 }
 
-
 //------------------------------------------------------------------------------
 
 int run_cartridge_tests()
