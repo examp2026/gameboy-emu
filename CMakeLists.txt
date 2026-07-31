@@ -15,6 +15,7 @@ set(SOURCE_FILES
     src/mbc.cpp
     src/rom.cpp
     src/sram.cpp
+    src/cpu.cpp
 )
 
 add_executable(gb_emulator src/main.cpp ${SOURCE_FILES})
@@ -24,5 +25,6 @@ add_executable(global_tests
     src/tests/bus_test.cpp
     src/tests/cartridge_test.cpp
     src/tests/mbc_test.cpp
+    src/tests/cpu_test.cpp
     ${SOURCE_FILES}
 )
