@@ -1,50 +1,56 @@
 #pragma once
+#include "bus.h"
 #include <cstdint>
+#include <memory>
 
 class CPU
 {
- public:
-  CPU() = default;
-  
-  uint16_t getA() const;
-  uint16_t getB() const;
-  uint16_t getC() const;
-  uint16_t getD() const;
-  uint16_t getE() const;
-  uint16_t getH() const;
-  uint16_t getL() const;
-  uint16_t getF() const;
-  
-  uint16_t getBC() const;
-  uint16_t getHL() const;
-  uint16_t getDE() const;
-  uint16_t getAF() const;
-  uint16_t getSP() const;
-  uint16_t getPC() const;
-  
-  void setA(uint8_t value);
-  void setB(uint8_t value);
-  void setC(uint8_t value);
-  void setD(uint8_t value);
-  void setE(uint8_t value);
-  void setH(uint8_t value);
-  void setL(uint8_t value);
-  void setF(uint8_t value);
+public:
+    CPU(Bus& bus) : bus(bus){}
 
-  void setBC(uint16_t value);
-  void setDE(uint16_t value);
-  void setHL(uint16_t value);
-  void setAF(uint16_t value);
+    void set_r8(uint8_t dest, uint8_t value);
+    
+    uint8_t get_r8(uint8_t reg_code);
+    uint8_t get_r8_dest(uint8_t opcode);
+    uint8_t get_r8_source(uint8_t opcode);
 
-  void setSP(uint16_t pointer);
-  void setPC(uint16_t pointer);
+    uint16_t get_r16rp(uint8_t reg_code);
+    uint16_t get_r16rp2(uint8_t reg_code);
+    
+    uint8_t get_r16mem(uint8_t reg_code);
+    uint8_t get_r16_dest(uint8_t opcode);
   
- private:
-  uint8_t A;
-  uint8_t B, C;
-  uint8_t D, E;
-  uint8_t H, L;
-  uint8_t F;
-  uint16_t SP;
-  uint16_t PC;
+    uint16_t getBC() const;
+    uint16_t getHL() const;
+    uint16_t getDE() const;
+    uint16_t getAF() const;
+    uint16_t getSP() const;
+    uint16_t getPC() const;
+  
+    void setF(uint8_t value);
+
+    void setBC(uint16_t value);
+    void setDE(uint16_t value);
+    void setHL(uint16_t value);
+    void setAF(uint16_t value);
+
+    void setSP(uint16_t pointer);
+    void setPC(uint16_t pointer);
+
+    void ld_r8_r8(uint8_t reg_code_l, uint8_t reg_code_r);
+
+    uint8_t fetch();
+    uint8_t decode();
+
+private:
+    uint8_t A{};
+    uint8_t B{}, C{};
+    uint8_t D{}, E{};
+    uint8_t H{}, L{};
+    uint8_t F{};
+    uint16_t sp{};
+    uint16_t pc{};
+
+    Bus& bus;
+
 };
