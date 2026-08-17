@@ -101,16 +101,16 @@ uint16_t CPU::getPC() const
 
 //------------------------------------------------------------------------------
 
-uint8_t CPU::get_r8_dest(uint8_t opcode)
+uint8_t CPU::decode_r8_dest(uint8_t opcode)
 {
     //[0][0][D][S][T][0][0][0]
-    uint8_t dest = (opcode >> 3) & 0x07;
-    return dest;
+    uint8_t dest_reg_code = (opcode >> 3) & 0x07;
+    return dest_reg_code;
 }
 
 //------------------------------------------------------------------------------
 
-uint8_t CPU::get_r8_source(uint8_t opcode)
+uint8_t CPU::decode_r8_source(uint8_t opcode)
 {
     //[0][0][0][0][0][S][R][C]
     uint8_t source = opcode & 0x07;
@@ -119,9 +119,9 @@ uint8_t CPU::get_r8_source(uint8_t opcode)
 
 //------------------------------------------------------------------------------
 
-void CPU::set_r8(uint8_t dest, uint8_t value)
+void CPU::set_r8(uint8_t reg_code, uint8_t value)
 {
-    switch(dest)
+    switch(reg_code)
     {
     case 0b000:
 	B = value;
@@ -186,7 +186,15 @@ uint8_t CPU::get_r8(uint8_t reg_code)
 
 //------------------------------------------------------------------------------
 
-uint8_t CPU::get_r16_dest(uint8_t opcode)
+uint8_t CPU::get_n8()
+{
+    uint8_t byte = bus.read(pc + 1);
+    return byte;
+}
+
+//------------------------------------------------------------------------------
+
+uint8_t CPU::decode_r16_dest(uint8_t opcode)
 {
     //[0][0][de][st][0][0][0][0] => [0][0][0][0][0][0][de][st]
     uint8_t dest = (opcode >> 4) & 0x03;
@@ -257,6 +265,68 @@ uint16_t CPU::get_r16rp2(uint8_t reg_code)
     default:
 	break;
     }
+
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+
+void CPU::set_r16rp(uint8_t reg_code, uint16_t value)
+{
+    switch(reg_code){
+    case 0b00:
+    {
+	setBC(value);
+	break;
+    }
+    case 0b01:
+    {
+	setDE(value);
+	break;
+    }
+    case 0b10:
+    {
+	setHL(value);
+	break;
+    }
+    case 0b11:
+    {
+	setSP(value);
+	break;
+    }
+    default:
+	break;
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void CPU::set_r16rp2(uint8_t reg_code, uint16_t value)
+{
+    switch(reg_code){
+    case 0b00:
+    {
+	setBC(value);
+	break;
+    }
+    case 0b01:
+    {
+	setDE(value);
+	break;
+    }
+    case 0b10:
+    {
+	setHL(value);
+	break;
+    }
+    case 0b11:
+    {
+	setAF(value);
+	break;
+    }
+    default:
+	break;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -277,11 +347,15 @@ uint8_t CPU::get_r16mem(uint8_t reg_code)
     case 0b10:
     {
 	uint8_t byte = bus.read(getHL());
+	uint16_t bytes = getHL() + 1;
+	setHL(bytes);
 	return byte;
     }
     case 0b11:
     {
-	uint8_t byte = bus.read(getAF());
+	uint8_t byte = bus.read(getHL());
+	uint16_t bytes = getHL() - 1;
+	setHL(bytes);
 	return byte;
     }
     default:
@@ -291,12 +365,41 @@ uint8_t CPU::get_r16mem(uint8_t reg_code)
     return 0;
 }
 
+//------------------------------------------------------------------------------
+
+uint16_t CPU::get_n16()
+{
+    uint8_t low = get_n8();
+    ++pc;
+    uint8_t high = get_n8();
+    --pc;
+    uint16_t bytes =
+	(static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
+    return bytes;
+}
+
 //--------------------[INSTRUCTIONS SECTION]------------------------------------
 
 void CPU::ld_r8_r8(uint8_t reg_code_l, uint8_t reg_code_r)
 {
     uint8_t value = get_r8(reg_code_r);
     set_r8(reg_code_l, value);
+}
+
+//------------------------------------------------------------------------------
+
+void CPU::ld_r8_n8(uint8_t reg_code_l)
+{
+    uint8_t value = get_n8();
+    set_r8(reg_code_l, value);
+}
+
+//--------------------[IN-PROGRESS]---------------------------------------------
+
+void CPU::ld_r16_n16(uint8_t reg_code)
+{
+    uint16_t bytes = get_n16();
+    set_r16rp(reg_code, bytes);
 }
 
 //------------------------------------------------------------------------------
@@ -313,34 +416,28 @@ uint8_t CPU::fetch()
 uint8_t CPU::decode()
 {
     uint8_t opcode = fetch();
-    uint8_t dest {};
-    uint8_t source {};
+    uint8_t dest_reg_code {};
+    uint8_t src_reg_code {};
 
-    if(opcode >= 0x00 && opcode <= 0x3F ){
-	if((opcode & 0x0F) == 0x02){
-	    //LD [r16], A
-	}
-	//LD r8,n8 column
-	if((opcode & 0x0F) == 0x06){
-	    //LD r8, n8
-	}
-	if((opcode & 0x0F) == 0x0A){
-	    //LD r8, [r16]
-	}
-	return 0;
-    }
-    if(opcode >= 0x40 && opcode <= 0x7F){
-	if(opcode == 0x76){
-	    // HALT	   
-	}else{
-	    dest = get_r8_dest(opcode);
-	    source = get_r8_source(opcode);
-	    set_r8(dest, get_r8(source));
-	}
+    // ld_r16_n16()
+    // switch((opcode)){
+    // case 0x01:
+    // case 0x11:
+    // case 0x21:
+    // case 0x31:
+    // default:
+    // 	break;
+    // }
 
-	return 0;
-    }
-
+    // ld_r8_r8()
+    if((opcode & 0xC0) == 0x40){
+	// if(opcode = 0x76){
+	//     // return halt();
+	// }
+	dest_reg_code = decode_r8_dest(opcode);
+	src_reg_code = decode_r8_source(opcode);
+	ld_r8_r8(dest_reg_code, src_reg_code);
+    }	
     return 0;
     
 }
