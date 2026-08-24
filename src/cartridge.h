@@ -15,5 +15,5 @@ private:
     Sram& sram;
     Rom rom;
     std::unique_ptr<Mbc> mbc;
-    void parse_header();    
+    void parse_header();
 };

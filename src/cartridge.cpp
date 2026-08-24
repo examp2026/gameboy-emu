@@ -10,7 +10,7 @@ Cartridge::Cartridge(Sram& sram, std::vector<uint8_t> raw_data)
 	rom.read(0x148), rom.read(0x149), rom.size(), sram.size());
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint8_t Cartridge::read(uint16_t address)
 {
@@ -27,7 +27,7 @@ uint8_t Cartridge::read(uint16_t address)
     return 0;
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void Cartridge::parse_header()
 {
@@ -38,7 +38,7 @@ void Cartridge::parse_header()
     Mbc mbc(rom_code, ram_code, rom.size(), sram.size());
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void Cartridge::write(uint16_t address, uint8_t value)
 {

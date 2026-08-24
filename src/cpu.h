@@ -3,10 +3,17 @@
 #include <cstdint>
 #include <memory>
 
+#include <iostream>
+
 class CPU
 {
 public:
     CPU(Bus& bus) : bus(bus){}
+
+    CPU(const CPU&) = delete;
+    CPU& operator=(const CPU&) = delete;
+    CPU(CPU&&) = delete;
+    CPU& operator=(CPU&&) = delete;
 
     void     set_r8(uint8_t reg_code, uint8_t value);    
     uint8_t  get_r8(uint8_t reg_code);
@@ -45,6 +52,7 @@ public:
 
     void ld_r16_n16(uint8_t reg_code);
 
+
     uint8_t fetch();
     uint8_t decode();
 
@@ -56,6 +64,7 @@ private:
     uint8_t F{};
     uint16_t sp{};
     uint16_t pc{};
+    // uint8_t total_cycles {};
 
     Bus& bus;
 

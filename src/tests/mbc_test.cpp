@@ -8,7 +8,7 @@ void test_mbc_write()
 
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void test_ram_flag_enable()
 {
@@ -30,13 +30,13 @@ void test_ram_flag_enable()
 void test_update_rom_bank_low_byte()
 {
     Mbc mbc(0x00, 0x00, 0x02, 0x04);
-    uint32_t expected_bank = 0;
+    uint8_t expected_bank = 0;
     uint32_t bank_size = 0x4000;
 
     assert(mbc.map_address(0x0000) == 0x0000);
     assert(mbc.map_address(0x3FFF) == 0x3FFF);
 
-    uint32_t written_bank = 5;
+    uint8_t written_bank = 5;
     expected_bank = 1;
     mbc.write(0x2000, written_bank);
     assert(mbc.map_address(0x4000) == (expected_bank * bank_size));
@@ -76,8 +76,8 @@ void test_rom_mapping_default_bank()
 void test_sram_bank_map_address()
 {
     Mbc mbc (0x00, 0x00, 0x02, 0x04);
-    uint32_t written_bank = 5;
-    uint32_t expected_bank = 0;
+    uint8_t written_bank = 5;
+    uint8_t expected_bank = 0;
     uint32_t bank_size = 0x2000;
     
     mbc.write(0xA000, written_bank);

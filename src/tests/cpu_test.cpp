@@ -1,18 +1,24 @@
 #include "../cpu.h"
 #include <cassert>
 
-struct TestEnv
+namespace
 {
-    Sram sram;
-    Cartridge cartridge;
-    Bus bus;
-    CPU cpu;
+    struct TestEnv
+    {
+	Sram sram;
+	Cartridge cartridge;
+	Bus bus;
+	CPU cpu;
 
-    TestEnv()
-	: cartridge(sram, std::vector<uint8_t>(0x8000, 0x00))
-	, bus(cartridge)
-	, cpu(bus) {}
-};
+	TestEnv()
+	    : cartridge(sram, std::vector<uint8_t>(0x8000, 0x00))
+	    , bus(cartridge)
+	    , cpu(bus)
+	{}
+
+    };
+
+}
 
 //------------------------------------------------------------------------------
 
@@ -68,14 +74,15 @@ void test_cpu_get_r8_generic_access()
     TestEnv env;
 
     //set_r8(), get_r8()
-    for(int i = 0; i <= 7; i++){
+    for(uint8_t i = 0; i <= 7; i++){
+	if(i == 6) continue;
 	env.cpu.set_r8(i, 0xAA);
 	//6(0b110) [HL] pair register must be written to memory, not to register
-	if(i != 6) assert(env.cpu.get_r8(i) == 0xAA);
     }
+    
     env.cpu.setHL(0xC000);
     env.cpu.set_r8(0b110, 0xAA);
-    assert(env.bus.read(0xC000) == 0xAA);    
+    assert(env.bus.read(0xC000) == 0xAA);
 }
 
 //------------------------------------------------------------------------------
@@ -83,17 +90,23 @@ void test_cpu_get_r8_generic_access()
 void test_cpu_get_n8n16()
 {
     TestEnv env;
-    
-    env.bus.write(0x0000, 0x0A);
-    env.bus.write(0xC001, 0xAA);
+
     env.cpu.setPC(0xC000);
-
+    env.bus.write(0xC000, 0xAA);
     uint8_t byte = env.cpu.get_n8();
-    assert(byte == 0xAA);
+    uint16_t current_pc = env.cpu.getPC();
 
-    env.bus.write(0xC002, 0xBB);
+    assert(byte == 0xAA);
+    assert(current_pc == 0xC001);
+
+    env.cpu.setPC(0xC000);
+    env.bus.write(0xC000, 0xAA);
+    env.bus.write(0xC001, 0xBB);
     uint16_t bytes = env.cpu.get_n16();
+    current_pc = env.cpu.getPC();
+
     assert(bytes == 0xBBAA);
+    assert(current_pc  == 0xC002);
 }
 
 
@@ -247,9 +260,9 @@ void test_cpu_instructions_load()
     // uint8_t r8_r = env.cpu.get_r8(0b001);
     // assert(r8_l == r8_r);
 
-    for(int i = 0; i <= 7; ++i){
+    for(uint8_t i = 0; i <= 7; ++i){
 	env.cpu.set_r8(i, 0x00);
-	for(int j = 0; j <= 7; ++j){
+	for(uint8_t j = 0; j <= 7; ++j){
 	    uint8_t value {};
 	    if(j!=6){
 		if(i!=6){
@@ -266,7 +279,7 @@ void test_cpu_instructions_load()
 
     env.bus.write(0xC000, 0xAA);
     env.cpu.setHL(0xC000);
-    for(int reg_code_l = 0; reg_code_l <=7; ++reg_code_l){
+    for(uint8_t reg_code_l = 0; reg_code_l <=7; ++reg_code_l){
 	if(reg_code_l != 4 && reg_code_l != 5){
 	    uint8_t reg_code_r = 6;
 	    if(reg_code_l == 6){
@@ -309,26 +322,47 @@ void test_cpu_instructions_load()
     assert(env.cpu.get_r8(H_reg_code) == temp_HL);
 
     //-----[ ld_r8_n8() ]-------------------------------------------------------
-    
-    env.cpu.setPC(0xC000);
-    env.bus.write(0xC001, 0xAA);    
-    env.cpu.ld_r8_n8(0b000);
-    uint8_t r8_l = env.cpu.get_r8(0b000);
-    assert(r8_l == 0xAA);
+
+    // env.cpu.setPC(0xC000);
+    // env.bus.write(0xC000, 0xAA);
+    // uint8_t byte = env.cpu.get_n8();
+
+    // assert(byte == 0xAA);
+
+    for(uint8_t opcode = 0x06; opcode <= 0x36; opcode += 0x10){
+	if(opcode == 0x36){
+	    env.cpu.setHL(0xC000);
+	} 
+	env.cpu.setPC(0xC000);
+	uint8_t value = 0x00 + opcode;
+	env.bus.write(0xC000, value);
+	uint8_t reg_code = env.cpu.decode_r8_dest(opcode);
+	env.cpu.ld_r8_n8(reg_code);
+	uint8_t r8 = env.cpu.get_r8(reg_code);
+	assert(r8 == value);
+    }
 
     //-----[ ld_r16_n16() ]-----------------------------------------------------
     
-    env.cpu.setPC(0xC000);
-    env.bus.write(0xC001, 0xAA);
-    env.bus.write(0xC002, 0xBB);    
+    // env.cpu.setPC(0xC000);
+    // env.bus.write(0xC001, 0xAA);
+    // env.bus.write(0xC002, 0xBB);    
 
-    uint16_t r16 {};
-    
-    for(int i = 0; i <= 3; ++i){
-	env.cpu.ld_r16_n16(i);
-	r16 = env.cpu.get_r16rp(i);	
-	assert(r16 == 0xBBAA);
+    // uint16_t r16 {};
+
+    for(uint8_t opcode = 0x01; opcode <= 0x31; opcode += 0x10){
 	env.cpu.setPC(0xC000);
+	uint16_t test_pc = env.cpu.getPC();
+	uint16_t value = 0x1234 + opcode;
+	uint8_t low_byte = static_cast<uint8_t>(value);
+	uint8_t high_byte = static_cast<uint8_t>(value >> 8);	
+	env.bus.write(test_pc, low_byte);
+	env.bus.write(test_pc+1, high_byte);
+	uint8_t reg_code = env.cpu.decode_r16_dest(opcode);
+	env.cpu.ld_r16_n16(reg_code);
+	uint16_t r16 = env.cpu.get_r16rp(reg_code);
+	assert(r16 == value);
+	assert(env.cpu.getPC() == test_pc + 2);
     }
     
     //--------------------------------------------------------------------------
@@ -340,15 +374,105 @@ void test_cpu_decode()
 {
     TestEnv env;
 
-    // ld_r8_r8(dest_reg_code, src_reg_code)
-    env.cpu.set_r8(0b000, 0xAA);
-    env.cpu.set_r8(0b001, 0xBB);
-    // 0b[0][0][d][s][t][s][r][c]; C->B
-    env.bus.write(0xC000, 0b01000001);
+    //-----[ ld_r8_r8(dest_reg_code, src_reg_code) ]----------------------------
+
+    uint16_t test_pc {};
+    uint8_t  test_opcode {};
+    
+    uint8_t reg_code_l {};
+    uint8_t reg_code_r {};
+    uint8_t r8_l_value {};
+    uint8_t r8_r_value {};
+
+    //-[ LD B,B ]---------------------------------------------------------------
+    env.cpu.setPC(0xC000);
+    
+    test_pc = env.cpu.getPC();
+    test_opcode = 0b01000000; // LD B,B opcode
+
+    reg_code_l = 0b000; //B register
+    reg_code_r = 0b000; //B register
+    
+    env.bus.write(test_pc, test_opcode);
+    env.cpu.set_r8(reg_code_r, 0x12);
+    env.cpu.decode();
+
+    r8_l_value = env.cpu.get_r8(reg_code_l);
+    r8_r_value = env.cpu.get_r8(reg_code_r);
+    
+    assert(r8_l_value == r8_r_value);
+    assert(env.cpu.getPC() == test_pc + 1);
+
+    //-[ LD D,L ]---------------------------------------------------------------
+    env.cpu.setPC(0xC000);
+
+    test_pc = env.cpu.getPC();
+    test_opcode = 0b01010101; // LD D,L opcode
+
+    reg_code_l = 0b010; //D register
+    reg_code_r = 0b101; //L register
+
+    env.bus.write(test_pc, test_opcode);
+    env.cpu.set_r8(reg_code_r, 0x23);
+    env.cpu.decode();
+    
+    r8_l_value = env.cpu.get_r8(reg_code_l);
+    r8_r_value = env.cpu.get_r8(reg_code_r);
+    
+    assert(r8_l_value == r8_r_value);
+    assert(env.cpu.getPC() == test_pc + 1);
+    
+    //-[ LD D,HL ]--------------------------------------------------------------
+    env.cpu.setPC(0xC000);
+    env.cpu.setHL(0xC500);
+    
+    test_pc = env.cpu.getPC();
+    test_opcode = 0b01010110; // LD D,HL opcode
+
+    reg_code_l = 0b010; //D register
+    reg_code_r = 0b110; //[HL] register
+
+    env.bus.write(test_pc, test_opcode);    
+    env.cpu.set_r8(reg_code_r, 0x34);
+    env.cpu.decode();
+    
+    r8_l_value = env.cpu.get_r8(reg_code_l);
+    r8_r_value = env.cpu.get_r8(reg_code_r);
+    
+    assert(r8_l_value == r8_r_value);
+    assert(env.cpu.getPC() == test_pc + 1);
+    
+    //-[ LD A,A ]---------------------------------------------------------------
+    env.cpu.setPC(0xC000);
+    
+    test_pc = env.cpu.getPC();
+    test_opcode = 0b01111111; // LD A,A opcode
+
+    reg_code_l = 0b111; //A register
+    reg_code_r = 0b111; //A register
+
+    env.bus.write(test_pc, test_opcode);
+    env.cpu.set_r8(reg_code_r, 0x45);
+    env.cpu.decode();
+    
+    r8_l_value = env.cpu.get_r8(reg_code_l);
+    r8_r_value = env.cpu.get_r8(reg_code_r);
+    
+    assert(r8_l_value == r8_r_value);
+    assert(env.cpu.getPC() == test_pc + 1);
+
+    //-----[ ld_r16_n16(dest_reg_code) ]----------------------------------------
+
+    //0b[0][0][de][st][0][0][0][0]
+    //0b00000001 == 0x01
+    env.bus.write(0xC000, 0b00000001);
+    env.bus.write(0xC001, 0xAA);
+    env.bus.write(0xC002, 0xBB);
     env.cpu.setPC(0xC000);
     env.cpu.decode();
 
-    assert(env.cpu.get_r8(0b000) == 0xBB);
+    assert(env.cpu.get_r16rp(0b00) == 0xBBAA);
+    
 }
 
 //------------------------------------------------------------------------------

@@ -120,7 +120,7 @@ uint8_t CPU::decode_r8_source(uint8_t opcode)
 //------------------------------------------------------------------------------
 
 void CPU::set_r8(uint8_t reg_code, uint8_t value)
-{
+{    
     switch(reg_code)
     {
     case 0b000:
@@ -188,7 +188,8 @@ uint8_t CPU::get_r8(uint8_t reg_code)
 
 uint8_t CPU::get_n8()
 {
-    uint8_t byte = bus.read(pc + 1);
+    uint8_t byte = bus.read(pc);
+    pc++;
     return byte;
 }
 
@@ -370,9 +371,7 @@ uint8_t CPU::get_r16mem(uint8_t reg_code)
 uint16_t CPU::get_n16()
 {
     uint8_t low = get_n8();
-    ++pc;
     uint8_t high = get_n8();
-    --pc;
     uint16_t bytes =
 	(static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
     return bytes;
@@ -420,14 +419,16 @@ uint8_t CPU::decode()
     uint8_t src_reg_code {};
 
     // ld_r16_n16()
-    // switch((opcode)){
-    // case 0x01:
-    // case 0x11:
-    // case 0x21:
-    // case 0x31:
-    // default:
-    // 	break;
-    // }
+    switch((opcode)){
+    case 0x01:
+    case 0x11:
+    case 0x21:
+    case 0x31:
+	dest_reg_code = decode_r16_dest(opcode);
+	ld_r16_n16(dest_reg_code);
+    default:
+	break;
+    }
 
     // ld_r8_r8()
     if((opcode & 0xC0) == 0x40){
@@ -437,7 +438,7 @@ uint8_t CPU::decode()
 	dest_reg_code = decode_r8_dest(opcode);
 	src_reg_code = decode_r8_source(opcode);
 	ld_r8_r8(dest_reg_code, src_reg_code);
-    }	
+    }
+
     return 0;
-    
 }
