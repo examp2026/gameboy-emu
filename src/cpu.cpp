@@ -371,7 +371,7 @@ void CPU::tick(uint16_t delta) {
 
 
 uint8_t CPU::fetch() {
-    uint8_t byte = bus.read(pc);
+    uint8_t byte = read_byte(pc);
     pc += 1;
     return byte;
 }
@@ -407,3 +407,11 @@ uint8_t CPU::decode() {
 
     return 0;
 }
+
+
+
+
+
+
+
+

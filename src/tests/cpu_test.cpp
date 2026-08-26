@@ -49,11 +49,11 @@ void assert_region_readable(
     )
 {
     for(uint16_t address = start; address <= end; address += 0x1) {
-	uint32_t t_cycles_before = env.cpu.cycles();
-	env.bus.write(address, value);
-	uint8_t result = env.cpu.read_byte(address);
-	assert(result == value);
-	assert(env.cpu.cycles() == t_cycles_before + 4);
+       uint32_t t_cycles_before = env.cpu.cycles();
+       env.bus.write(address, value);
+       uint8_t result = env.cpu.read_byte(address);
+       assert(result == value);
+       assert(env.cpu.cycles() == t_cycles_before + 4);
     }
     
 }
@@ -79,11 +79,11 @@ void assert_region_writable(
     )
 {
     for(uint16_t address = start; address <= end; address += 0x1) {
- 	uint32_t t_cycles_before = env.cpu.cycles();
-	env.cpu.write_byte(address, value);
-	uint8_t result = env.bus.read(address);
-	assert(result == value);
-	assert(env.cpu.cycles() == t_cycles_before + 4);
+       uint32_t t_cycles_before = env.cpu.cycles();
+       env.cpu.write_byte(address, value);
+       uint8_t result = env.bus.read(address);
+       assert(result == value);
+       assert(env.cpu.cycles() == t_cycles_before + 4);
     }
     
 }
@@ -165,12 +165,17 @@ void test_cpu_get_n8n16() {
 void test_cpu_fetch() {
     TestEnv env;
 
+    uint32_t t_cycles_before = env.cpu.cycles();
+    
     env.bus.write(0x0000, 0x0A);
-    env.bus.write(0xC000, 0xAA);
-    env.cpu.setPC(0xC000);
+    env.bus.write(0x8000, 0xAB);
+    env.cpu.setPC(0x8000);
 
-    assert(env.cpu.fetch() == 0xAA);
-    assert(env.cpu.getPC() == 0xC001);
+    uint8_t byte = env.cpu.fetch();
+
+    assert(byte == 0xAB);
+    assert(env.cpu.getPC() == 0x8001);
+    assert(env.cpu.cycles() == t_cycles_before + 4);
 }
 
 //------------------------------------------------------------------------------
