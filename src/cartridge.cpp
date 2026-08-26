@@ -4,7 +4,12 @@
 
 Cartridge::Cartridge(Sram &sram, std::vector<uint8_t> raw_data)
     : sram(sram), rom(std::move(raw_data)) {
-    mbc = std::make_unique<Mbc>(rom.read(0x148), rom.read(0x149), rom.size(), sram.size());
+    mbc = std::make_unique<Mbc>(
+        rom.read(0x148),
+        rom.read(0x149),
+        rom.size(),
+        sram.size()
+    );
 }
 
 //------------------------------------------------------------------------------
