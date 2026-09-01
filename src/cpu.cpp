@@ -336,7 +336,7 @@ uint16_t CPU::get_n16() {
     uint8_t low = get_n8();
     uint8_t high = get_n8();
     uint16_t bytes =
-	(static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
+        (static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
     return bytes;
 }
 
@@ -363,18 +363,13 @@ void CPU::ld_r16_n16(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
-uint32_t CPU::cycles() {
-    return t_cycles;
-}
+uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
 
-void CPU::tick(uint16_t delta) {
-    t_cycles += delta;
-}
+void CPU::tick(uint16_t delta) { t_cycles += delta; }
 
 //------------------------------------------------------------------------------
-
 
 uint8_t CPU::fetch() {
     uint8_t byte = read_byte(pc);
