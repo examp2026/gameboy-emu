@@ -178,7 +178,8 @@ uint8_t CPU::get_r8(uint8_t reg_code) {
 //------------------------------------------------------------------------------
 
 uint8_t CPU::get_n8() {
-    uint8_t byte = bus.read(pc);
+    // uint8_t byte = bus.read(pc);
+    uint8_t byte = read_byte(pc);
     pc++;
     return byte;
 }
@@ -304,21 +305,21 @@ void CPU::set_r16rp2(uint8_t reg_code, uint16_t value) {
 uint8_t CPU::get_r16mem(uint8_t reg_code) {
     switch (reg_code) {
     case 0b00: {
-        uint8_t byte = bus.read(getBC());
+        uint8_t byte = read_byte(getBC()); // bus.read(getBC());
         return byte;
     }
     case 0b01: {
-        uint8_t byte = bus.read(getDE());
+        uint8_t byte = read_byte(getDE());// bus.read(getDE());
         return byte;
     }
     case 0b10: {
-        uint8_t byte = bus.read(getHL());
+        uint8_t byte = read_byte(getHL());
         uint16_t bytes = getHL() + 1;
         setHL(bytes);
         return byte;
     }
     case 0b11: {
-        uint8_t byte = bus.read(getHL());
+        uint8_t byte = read_byte(getHL()); // bus.read(getHL());
         uint16_t bytes = getHL() - 1;
         setHL(bytes);
         return byte;
