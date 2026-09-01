@@ -111,27 +111,20 @@ void test_cpu_register_pairs() {
 
 //------------------------------------------------------------------------------
 
-void assert_region_readable(
-    TestEnv& env,
-    uint16_t start,
-    uint16_t end,
-    uint8_t value
-    )
-{
-    for(uint16_t address = start; address <= end; address += 0x1) {
-       uint32_t t_cycles_before = env.cpu.cycles();
-       env.bus.write(address, value);
-       uint8_t result = env.cpu.read_byte(address);
-       assert(result == value);
-       assert(env.cpu.cycles() == t_cycles_before + 4);
+void assert_region_readable(TestEnv &env, uint16_t start, uint16_t end,
+                            uint8_t value) {
+    for (uint16_t address = start; address <= end; address += 0x1) {
+        uint32_t t_cycles_before = env.cpu.cycles();
+        env.bus.write(address, value);
+        uint8_t result = env.cpu.read_byte(address);
+        assert(result == value);
+        assert(env.cpu.cycles() == t_cycles_before + 4);
     }
-    
 }
 
 //------------------------------------------------------------------------------
 
-void test_cpu_byte_read()
-{
+void test_cpu_byte_read() {
     TestEnv env;
 
     assert_region_readable(env, 0xC000, 0xDFFF, 0xAB);
@@ -141,27 +134,20 @@ void test_cpu_byte_read()
 
 //------------------------------------------------------------------------------
 
-void assert_region_writable(
-    TestEnv& env,
-    uint16_t start,
-    uint16_t end,
-    uint8_t value
-    )
-{
-    for(uint16_t address = start; address <= end; address += 0x1) {
-       uint32_t t_cycles_before = env.cpu.cycles();
-       env.cpu.write_byte(address, value);
-       uint8_t result = env.bus.read(address);
-       assert(result == value);
-       assert(env.cpu.cycles() == t_cycles_before + 4);
+void assert_region_writable(TestEnv &env, uint16_t start, uint16_t end,
+                            uint8_t value) {
+    for (uint16_t address = start; address <= end; address += 0x1) {
+        uint32_t t_cycles_before = env.cpu.cycles();
+        env.cpu.write_byte(address, value);
+        uint8_t result = env.bus.read(address);
+        assert(result == value);
+        assert(env.cpu.cycles() == t_cycles_before + 4);
     }
-    
 }
 
 //------------------------------------------------------------------------------
 
-void test_cpu_byte_write()
-{
+void test_cpu_byte_write() {
     TestEnv env;
 
     assert_region_writable(env, 0xC000, 0xCFFF, 0xAB);
@@ -199,7 +185,8 @@ void test_cpu_get_r8_generic_access() {
         if (i == 6)
             continue;
         env.cpu.set_r8(i, 0xAA);
-        //6(0b110) [HL] pair register must be written to memory, not to register
+        // 6(0b110) [HL] pair register must be written to memory, not to
+        // register
     }
 
     env.cpu.setHL(0xC000);
@@ -236,7 +223,7 @@ void test_cpu_fetch() {
     TestEnv env;
 
     uint32_t t_cycles_before = env.cpu.cycles();
-    
+
     env.bus.write(0x0000, 0x0A);
     env.bus.write(0x8000, 0xAB);
     env.cpu.setPC(0x8000);
