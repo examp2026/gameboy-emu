@@ -39,6 +39,7 @@ class CPU {
     uint16_t getSP() const;
     uint16_t getPC() const;
 
+    uint8_t getF();
     void setF(uint8_t value);
 
     void setBC(uint16_t value);
@@ -55,11 +56,11 @@ class CPU {
     void ld_r16_n16(uint8_t reg_code);
 
     void tick(uint16_t delta);
-    
+
     uint32_t cycles();
 
     uint8_t fetch();
-    uint8_t decode();
+    void decode();
 
   private:
     uint8_t A{};
