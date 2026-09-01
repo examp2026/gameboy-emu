@@ -9,9 +9,79 @@ struct TestEnv {
     CPU cpu;
 
     TestEnv()
-	: cartridge(sram, std::vector<uint8_t>(0x8000, 0x00)),
-	  bus(cartridge), cpu(bus) {}
+        : cartridge(sram, std::vector<uint8_t>(0x8000, 0x00)), bus(cartridge),
+          cpu(bus) {}
 };
+
+//--------------------------------------------------------------------------
+
+constexpr uint8_t OPCODE_CYCLES[256] = {
+    // 0x00 - 0x0F
+    4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
+    // 0x10 - 0x1F
+    4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+    // 0x20 - 0x2F
+    12, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+    // 0x30 - 0x3F
+    12, 12, 8, 8, 12, 12, 10, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+    // 0x40 - 0x4F
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0x50 - 0x5F
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0x60 - 0x6F
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0x70 - 0x7F
+    8, 8, 8, 8, 8, 8, 4, 8, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0x80 - 0x8F
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0x90 - 0x9F
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0xA0 - 0xAF
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0xB0 - 0xBF
+    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+    // 0xC0 - 0xCF
+    20, 12, 16, 16, 24, 16, 8, 16, 20, 16, 16, 4, 24, 24, 8, 16,
+    // 0xD0 - 0xDF
+    20, 12, 16, 0, 24, 16, 8, 16, 20, 16, 16, 0, 24, 0, 8, 16,
+    // 0xE0 - 0xEF
+    12, 12, 8, 0, 0, 16, 8, 16, 16, 4, 16, 0, 0, 0, 8, 16,
+    // 0xF0 - 0xFF
+    12, 12, 8, 4, 0, 16, 8, 16, 12, 8, 16, 4, 0, 0, 8, 16};
+
+//--------------------------------------------------------------------------
+
+void poison_state(TestEnv &env) {
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+        env.cpu.set_r8(reg_code, 0xFF);
+    }
+}
+
+//--------------------------------------------------------------------------
+
+void expect_eq(uint8_t actual, uint8_t expected, const char *context) {
+    if (actual != expected) {
+        std::printf("FAIL: %s|expected=0x%02X actual=0x%02X\n", context,
+                    expected, actual);
+        std::fflush(stdout);
+        std::abort();
+    }
+}
+
+//--------------------------------------------------------------------------
+
+void expect_eq(uint32_t actual, uint32_t expected, const char *context) {
+    if (actual != expected) {
+        std::printf("FAIL: %s | expected=%u actual=%u\n", context, expected,
+                    actual);
+        std::fflush(stdout);
+        std::abort();
+    }
+}
+
+//--------------------------------------------------------------------------
+
+void poison_flag(TestEnv &env) { env.cpu.setF(0xFF); }
 
 } // namespace
 
@@ -423,102 +493,99 @@ void test_cpu_decode() {
 
     //-----[ ld_r8_r8(dest_reg_code, src_reg_code) ]----------------------------
 
-    uint16_t test_pc{};
-    uint8_t test_opcode{};
+    for (uint8_t dst = 0b000; dst <= 0b111; dst++) {
+        for (uint8_t src = 0b000; src <= 0b111; src++) {
+            if (!(dst == 0b110 && src == 0b110)) { // if not LD [HL], [HL]
+                char ctx[64];
+                std::snprintf(ctx, sizeof(ctx), "dst=%u src=%u", dst, src);
 
-    uint8_t reg_code_l{};
-    uint8_t reg_code_r{};
-    uint8_t r8_l_value{};
-    uint8_t r8_r_value{};
+                env.cpu.setPC(0xC000);
 
-    //-[ LD B,B ]---------------------------------------------------------------
-    env.cpu.setPC(0xC000);
+                uint16_t test_pc = env.cpu.getPC();
+                uint8_t test_opcode = ((0b01 << 6) | (dst << 3) | src);
+                uint8_t test_value = dst + src + 0x10;
+                env.bus.write(test_pc, test_opcode);
 
-    test_pc = env.cpu.getPC();
-    test_opcode = 0b01000000; // LD B,B opcode
+                poison_state(env);
+                poison_flag(env);
 
-    reg_code_l = 0b000; // B register
-    reg_code_r = 0b000; // B register
-
-    env.bus.write(test_pc, test_opcode);
-    env.cpu.set_r8(reg_code_r, 0x12);
-    env.cpu.decode();
-
-    r8_l_value = env.cpu.get_r8(reg_code_l);
-    r8_r_value = env.cpu.get_r8(reg_code_r);
-
-    assert(r8_l_value == r8_r_value);
-    assert(env.cpu.getPC() == test_pc + 1);
-
-    //-[ LD D,L ]---------------------------------------------------------------
-    env.cpu.setPC(0xC000);
-
-    test_pc = env.cpu.getPC();
-    test_opcode = 0b01010101; // LD D,L opcode
-
-    reg_code_l = 0b010; // D register
-    reg_code_r = 0b101; // L register
-
-    env.bus.write(test_pc, test_opcode);
-    env.cpu.set_r8(reg_code_r, 0x23);
-    env.cpu.decode();
-
-    r8_l_value = env.cpu.get_r8(reg_code_l);
-    r8_r_value = env.cpu.get_r8(reg_code_r);
-
-    assert(r8_l_value == r8_r_value);
-    assert(env.cpu.getPC() == test_pc + 1);
-
-    //-[ LD D,HL ]--------------------------------------------------------------
-    env.cpu.setPC(0xC000);
-    env.cpu.setHL(0xC500);
-
-    test_pc = env.cpu.getPC();
-    test_opcode = 0b01010110; // LD D,HL opcode
-
-    reg_code_l = 0b010; // D register
-    reg_code_r = 0b110; //[HL] register
-
-    env.bus.write(test_pc, test_opcode);
-    env.cpu.set_r8(reg_code_r, 0x34);
-    env.cpu.decode();
-
-    r8_l_value = env.cpu.get_r8(reg_code_l);
-    r8_r_value = env.cpu.get_r8(reg_code_r);
-
-    assert(r8_l_value == r8_r_value);
-    assert(env.cpu.getPC() == test_pc + 1);
-
-    //-[ LD A,A ]---------------------------------------------------------------
-    env.cpu.setPC(0xC000);
-
-    test_pc = env.cpu.getPC();
-    test_opcode = 0b01111111; // LD A,A opcode
-
-    reg_code_l = 0b111; // A register
-    reg_code_r = 0b111; // A register
-
-    env.bus.write(test_pc, test_opcode);
-    env.cpu.set_r8(reg_code_r, 0x45);
-    env.cpu.decode();
-
-    r8_l_value = env.cpu.get_r8(reg_code_l);
-    r8_r_value = env.cpu.get_r8(reg_code_r);
-
-    assert(r8_l_value == r8_r_value);
-    assert(env.cpu.getPC() == test_pc + 1);
-
-    //-----[ ld_r16_n16(dest_reg_code) ]----------------------------------------
-
-    // 0b[0][0][de][st][0][0][0][0]
-    // 0b00000001 == 0x01
-    env.bus.write(0xC000, 0b00000001);
-    env.bus.write(0xC001, 0xAA);
-    env.bus.write(0xC002, 0xBB);
-    env.cpu.setPC(0xC000);
-    env.cpu.decode();
-
-    assert(env.cpu.get_r16rp(0b00) == 0xBBAA);
+                if (src == 0b110) {
+                    env.bus.write(0xC500, test_value);
+                    env.cpu.setHL(0xC500);
+                    uint8_t expected = test_value;
+                    uint8_t expected_f = env.cpu.getF();
+                    uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+                    uint32_t cycles_before = env.cpu.cycles();
+                    env.cpu.decode();
+                    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+                    uint8_t actual = env.cpu.get_r8(dst);
+                    uint8_t actual_f = env.cpu.getF();
+                    expect_eq(actual, expected, ctx);
+                    expect_eq(actual_f, expected_f, ctx);
+                    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+                } else if (dst == 0b110) {
+                    if (src == 0b100) { // LD [HL], H
+                        env.cpu.set_r8(src, test_value);
+                        env.cpu.setHL(0xC500);
+                        uint8_t expected = 0xC5;
+                        uint8_t expected_f = env.cpu.getF();
+                        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+                        uint32_t cycles_before = env.cpu.cycles();
+                        env.cpu.decode();
+                        uint32_t actual_t_cycles =
+                            env.cpu.cycles() - cycles_before;
+                        uint8_t actual = env.cpu.get_r8(dst);
+                        uint8_t actual_f = env.cpu.getF();
+                        expect_eq(actual, expected, ctx);
+                        expect_eq(actual_f, expected_f, ctx);
+                        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+                    } else if (src == 0b101) { // LD [HL], L
+                        env.cpu.setHL(0xC500);
+                        uint8_t expected = 0x00;
+                        uint8_t expected_f = env.cpu.getF();
+                        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+                        uint32_t cycles_before = env.cpu.cycles();
+                        env.cpu.decode();
+                        uint32_t actual_t_cycles =
+                            env.cpu.cycles() - cycles_before;
+                        uint8_t actual = env.cpu.get_r8(dst);
+                        uint8_t actual_f = env.cpu.getF();
+                        expect_eq(actual, expected, ctx);
+                        expect_eq(actual_f, expected_f, ctx);
+                        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+                    } else { // LD [HL], 8
+                        env.cpu.setHL(0xC500);
+                        env.cpu.set_r8(src, test_value);
+                        uint8_t expected = test_value;
+                        uint8_t expected_f = env.cpu.getF();
+                        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+                        uint32_t cycles_before = env.cpu.cycles();
+                        env.cpu.decode();
+                        uint32_t actual_t_cycles =
+                            env.cpu.cycles() - cycles_before;
+                        uint8_t actual = env.cpu.get_r8(dst);
+                        uint8_t actual_f = env.cpu.getF();
+                        expect_eq(actual, expected, ctx);
+                        expect_eq(actual_f, expected_f, ctx);
+                        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+                    }
+                } else {
+                    env.cpu.set_r8(src, test_value);
+                    uint8_t expected = test_value;
+                    uint8_t expected_f = env.cpu.getF();
+                    uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+                    uint32_t cycles_before = env.cpu.cycles();
+                    env.cpu.decode();
+                    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+                    uint8_t actual = env.cpu.get_r8(dst);
+                    uint8_t actual_f = env.cpu.getF();
+                    expect_eq(actual, expected, ctx);
+                    expect_eq(actual_f, expected_f, ctx);
+                    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+                }
+            }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
