@@ -16,17 +16,17 @@ class CPU {
 
     uint8_t read_byte(uint16_t address);
     void write_byte(uint16_t address, uint8_t value);
-    
+
     void set_r8(uint8_t reg_code, uint8_t value);
     uint8_t get_r8(uint8_t reg_code);
     uint16_t get_r16rp(uint8_t reg_code);
     void set_r16rp(uint8_t reg_code, uint16_t value);
     uint16_t get_r16rp2(uint8_t reg_code);
     void set_r16rp2(uint8_t reg_code, uint16_t value);
-    uint8_t get_r16mem(uint8_t reg_code);    
+    uint8_t get_r16mem(uint8_t reg_code);
 
     uint8_t decode_r8_dest(uint8_t opcode);
-    uint8_t decode_r8_source(uint8_t opcode); // - ???
+    uint8_t decode_r8_source(uint8_t opcode);
     uint8_t decode_r16_dest(uint8_t opcode);
 
     uint8_t get_n8();
@@ -70,7 +70,7 @@ class CPU {
     uint8_t F{};
     uint16_t sp{};
     uint16_t pc{};
-    uint32_t t_cycles {};
+    uint32_t t_cycles{};
 
     Bus &bus;
 };
