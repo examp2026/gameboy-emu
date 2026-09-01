@@ -27,6 +27,10 @@ void CPU::setF(uint8_t value) { F = value & 0xF0; }
 
 //------------------------------------------------------------------------------
 
+uint8_t CPU::getF() { return F; }
+
+//------------------------------------------------------------------------------
+
 void CPU::setAF(uint16_t value) {
     A = static_cast<uint8_t>(value >> 8);
     setF(static_cast<uint8_t>(value));
@@ -130,7 +134,8 @@ void CPU::set_r8(uint8_t reg_code, uint8_t value) {
         L = value;
         break;
     case 0b110:
-        bus.write(getHL(), value);
+        // bus.write(getHL(), value);
+        write_byte(getHL(), value);
         break;
     case 0b111:
         A = value;
@@ -157,7 +162,8 @@ uint8_t CPU::get_r8(uint8_t reg_code) {
     case 0b101:
         return L;
     case 0b110: { //[HL]
-        uint8_t byte = bus.read(getHL());
+                  // uint8_t byte = bus.read(getHL());
+        uint8_t byte = read_byte(getHL());
         return byte;
     }
     case 0b111:
@@ -378,7 +384,7 @@ uint8_t CPU::fetch() {
 
 //--------------------[UNTESTED]------------------------------------------------
 
-uint8_t CPU::decode() {
+void CPU::decode() {
     uint8_t opcode = fetch();
     uint8_t dest_reg_code{};
     uint8_t src_reg_code{};
@@ -388,9 +394,11 @@ uint8_t CPU::decode() {
     case 0x01:
     case 0x11:
     case 0x21:
-    case 0x31:
+    case 0x31: {
         dest_reg_code = decode_r16_dest(opcode);
         ld_r16_n16(dest_reg_code);
+        break;
+    }
     default:
         break;
     }
@@ -404,14 +412,4 @@ uint8_t CPU::decode() {
         src_reg_code = decode_r8_source(opcode);
         ld_r8_r8(dest_reg_code, src_reg_code);
     }
-
-    return 0;
 }
-
-
-
-
-
-
-
-
