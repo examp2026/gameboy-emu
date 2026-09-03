@@ -13,7 +13,7 @@ struct TestEnv {
           cpu(bus) {}
 };
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 constexpr uint8_t OPCODE_CYCLES[256] = {
     // 0x00 - 0x0F
@@ -49,7 +49,7 @@ constexpr uint8_t OPCODE_CYCLES[256] = {
     // 0xF0 - 0xFF
     12, 12, 8, 4, 0, 16, 8, 16, 12, 8, 16, 4, 0, 0, 8, 16};
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void poison_state(TestEnv &env) {
     for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
@@ -57,7 +57,7 @@ void poison_state(TestEnv &env) {
     }
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void expect_eq(uint8_t actual, uint8_t expected, const char *context) {
     if (actual != expected) {
@@ -68,7 +68,18 @@ void expect_eq(uint8_t actual, uint8_t expected, const char *context) {
     }
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+void expect_eq(uint16_t actual, uint16_t expected, const char *context) {
+    if (actual != expected) {
+        std::printf("FAIL: %s | expected=0x%02X actual=0x%02x\n", context,
+                    expected, actual);
+        std::fflush(stdout);
+        std::abort();
+    }
+}
+
+//------------------------------------------------------------------------------
 
 void expect_eq(uint32_t actual, uint32_t expected, const char *context) {
     if (actual != expected) {
@@ -79,7 +90,7 @@ void expect_eq(uint32_t actual, uint32_t expected, const char *context) {
     }
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void poison_flag(TestEnv &env) { env.cpu.setF(0xFF); }
 
@@ -569,6 +580,52 @@ void test_cpu_decode_ld_r8_r8() {
             }
         }
     }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_ld_r16_n16() {
+    TestEnv env;
+
+    for (uint8_t test_opcode = 0x01; test_opcode <= 0x31; test_opcode += 0x10) {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_opcode=0x%02X", test_opcode);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_reg_code = (test_opcode >> 4) & 0x07;
+        uint16_t test_pc = env.cpu.getPC();
+        uint16_t test_value = 0x1234;
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 0x02, (test_value >> 8));
+        env.bus.write(test_pc + 0x01, test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t expected_f = env.cpu.getF();
+        uint16_t expected = test_value;
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+        uint32_t cycles_before = env.cpu.cycles();
+
+        env.cpu.decode();
+
+        uint16_t actual = env.cpu.get_r16rp(test_reg_code);
+        uint8_t actual_f = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_f, expected_f, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode() {
+
+    test_cpu_decode_ld_r8_r8();
+    test_cpu_decode_ld_r16_n16();
 }
 
 //------------------------------------------------------------------------------
