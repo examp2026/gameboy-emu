@@ -469,16 +469,12 @@ void test_cpu_instructions_load() {
         assert(r16 == value);
         assert(env.cpu.getPC() == test_pc + 2);
     }
-
-    //--------------------------------------------------------------------------
 }
 
 //------------------------------------------------------------------------------
 
-void test_cpu_decode() {
+void test_cpu_decode_ld_r8_r8() {
     TestEnv env;
-
-    //-----[ ld_r8_r8(dest_reg_code, src_reg_code) ]----------------------------
 
     for (uint8_t dst = 0b000; dst <= 0b111; dst++) {
         for (uint8_t src = 0b000; src <= 0b111; src++) {
