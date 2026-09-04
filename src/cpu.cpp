@@ -309,7 +309,7 @@ uint8_t CPU::get_r16mem(uint8_t reg_code) {
         return byte;
     }
     case 0b01: {
-        uint8_t byte = read_byte(getDE());// bus.read(getDE());
+        uint8_t byte = read_byte(getDE()); // bus.read(getDE());
         return byte;
     }
     case 0b10: {
@@ -392,7 +392,7 @@ void CPU::decode() {
     case 0x21:
     case 0x31: {
         dest_reg_code = decode_r16_dest(opcode);
-        ld_r16_n16(dest_reg_code);
+	ld_r16_n16(dest_reg_code);
         break;
     }
     default:
@@ -407,5 +407,22 @@ void CPU::decode() {
         dest_reg_code = decode_r8_dest(opcode);
         src_reg_code = decode_r8_source(opcode);
         ld_r8_r8(dest_reg_code, src_reg_code);
+    }
+
+    // ld_r8_n8
+    switch (opcode) {
+    case 0x06:
+    case 0x16:
+    case 0x26:
+    case 0x36:
+    case 0x0E:
+    case 0x1E:
+    case 0x2E:
+    case 0x3E:{
+	dest_reg_code = decode_r8_dest(opcode);
+	ld_r8_n8(dest_reg_code);
+    }
+    default:
+	break;
     }
 }

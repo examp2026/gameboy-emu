@@ -23,7 +23,7 @@ constexpr uint8_t OPCODE_CYCLES[256] = {
     // 0x20 - 0x2F
     12, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
     // 0x30 - 0x3F
-    12, 12, 8, 8, 12, 12, 10, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+    12, 12, 8, 8, 12, 12, 12, 4, 12, 8, 8, 8, 4, 4, 8, 4,
     // 0x40 - 0x4F
     4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
     // 0x50 - 0x5F
@@ -83,8 +83,8 @@ void expect_eq(uint16_t actual, uint16_t expected, const char *context) {
 
 void expect_eq(uint32_t actual, uint32_t expected, const char *context) {
     if (actual != expected) {
-        std::printf("FAIL: %s | expected=%u actual=%u\n", context, expected,
-                    actual);
+        std::printf("FAIL: %s | expected_t_cycles=%u actual_t_cycles=%u\n",
+                    context, expected, actual);
         std::fflush(stdout);
         std::abort();
     }
@@ -584,6 +584,48 @@ void test_cpu_decode_ld_r8_r8() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_ld_r8_n8() {
+    TestEnv env;
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "reg_code <= 0x%2X", reg_code);
+        uint8_t test_opcode = (reg_code << 3) | 0x06;
+        uint8_t test_value = reg_code + 0x10;
+        env.cpu.setPC(0xC000);
+        uint16_t test_pc = env.cpu.getPC();
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        if (reg_code == 0b110) {
+            env.cpu.setHL(0xC500);
+        }
+
+        uint8_t expected = test_value;
+        uint8_t expected_f = env.cpu.getF();
+        uint16_t expected_pc = test_pc + 2;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint16_t actual_pc = env.cpu.getPC();
+        uint8_t actual = env.cpu.get_r8(reg_code);
+        uint8_t actual_f = env.cpu.getF();
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_f, expected_f, ctx);
+        expect_eq(actual_pc, expected_pc, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_ld_r16_n16() {
     TestEnv env;
 
@@ -625,6 +667,7 @@ void test_cpu_decode_ld_r16_n16() {
 void test_cpu_decode() {
 
     test_cpu_decode_ld_r8_r8();
+    test_cpu_decode_ld_r8_n8();
     test_cpu_decode_ld_r16_n16();
 }
 
