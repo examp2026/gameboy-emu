@@ -365,16 +365,51 @@ void test_cpu_get_r16mem() {
 
 //------------------------------------------------------------------------------
 
-void test_cpu_instructions_load() {
+void test_cpu_ld_r16_n16() {
+
     TestEnv env;
 
-    //-----[ regular ld_r8_r8() ]-----------------------------------------------
+    for (uint8_t opcode = 0x01; opcode <= 0x31; opcode += 0x10) {
+        env.cpu.setPC(0xC000);
+        uint16_t test_pc = env.cpu.getPC();
+        uint16_t value = 0x1234 + opcode;
+        uint8_t low_byte = static_cast<uint8_t>(value);
+        uint8_t high_byte = static_cast<uint8_t>(value >> 8);
+        env.bus.write(test_pc, low_byte);
+        env.bus.write(test_pc + 1, high_byte);
+        uint8_t reg_code = env.cpu.decode_r16_dest(opcode);
+        env.cpu.ld_r16_n16(reg_code);
+        uint16_t r16 = env.cpu.get_r16rp(reg_code);
+        assert(r16 == value);
+        assert(env.cpu.getPC() == test_pc + 2);
+    }
+}
 
-    // env.cpu.setBC(0xAABB);
-    // env.cpu.ld_r8_r8(0b000, 0b001);
-    // uint8_t r8_l = env.cpu.get_r8(0b000);
-    // uint8_t r8_r = env.cpu.get_r8(0b001);
-    // assert(r8_l == r8_r);
+//------------------------------------------------------------------------------
+
+void test_cpu_ld_r8_n8() {
+
+    TestEnv env;
+
+    for (uint8_t opcode = 0x06; opcode <= 0x36; opcode += 0x10) {
+        if (opcode == 0x36) {
+            env.cpu.setHL(0xC000);
+        }
+        env.cpu.setPC(0xC000);
+        uint8_t value = 0x00 + opcode;
+        env.bus.write(0xC000, value);
+        uint8_t reg_code = env.cpu.decode_r8_dest(opcode);
+        env.cpu.ld_r8_n8(reg_code);
+        uint8_t r8 = env.cpu.get_r8(reg_code);
+        assert(r8 == value);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_ld_r8_r8() {
+
+    TestEnv env;
 
     for (uint8_t i = 0; i <= 7; ++i) {
         env.cpu.set_r8(i, 0x00);
@@ -436,49 +471,103 @@ void test_cpu_instructions_load() {
     temp_HL = env.cpu.get_r8(HL_reg_code);
     env.cpu.ld_r8_r8(H_reg_code, HL_reg_code);
     assert(env.cpu.get_r8(H_reg_code) == temp_HL);
+}
 
-    //-----[ ld_r8_n8() ]-------------------------------------------------------
+//------------------------------------------------------------------------------
 
-    // env.cpu.setPC(0xC000);
-    // env.bus.write(0xC000, 0xAA);
-    // uint8_t byte = env.cpu.get_n8();
+void test_cpu_instructions_load() {
+    void test_cpu_ld_r16_n16();
+    void test_cpu_ld_r8_n8();
+    void test_cpu_ld_r8_r8();
+}
 
-    // assert(byte == 0xAA);
+//------------------------------------------------------------------------------
 
-    for (uint8_t opcode = 0x06; opcode <= 0x36; opcode += 0x10) {
-        if (opcode == 0x36) {
-            env.cpu.setHL(0xC000);
-        }
+void test_cpu_decode_ld_r16_n16() {
+
+    TestEnv env;
+
+    for (uint8_t test_opcode = 0x01; test_opcode <= 0x31; test_opcode += 0x10) {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_opcode=0x%02X", test_opcode);
+
         env.cpu.setPC(0xC000);
-        uint8_t value = 0x00 + opcode;
-        env.bus.write(0xC000, value);
-        uint8_t reg_code = env.cpu.decode_r8_dest(opcode);
-        env.cpu.ld_r8_n8(reg_code);
-        uint8_t r8 = env.cpu.get_r8(reg_code);
-        assert(r8 == value);
+
+        uint8_t test_reg_code = (test_opcode >> 4) & 0x07;
+        uint16_t test_pc = env.cpu.getPC();
+        uint16_t test_value = 0x1234;
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 0x02, (test_value >> 8));
+        env.bus.write(test_pc + 0x01, test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t expected_f = env.cpu.getF();
+        uint16_t expected = test_value;
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+        uint32_t cycles_before = env.cpu.cycles();
+
+        env.cpu.decode();
+
+        uint16_t actual = env.cpu.get_r16rp(test_reg_code);
+        uint8_t actual_f = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_f, expected_f, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
     }
+}
 
-    //-----[ ld_r16_n16() ]-----------------------------------------------------
+//------------------------------------------------------------------------------
 
-    // env.cpu.setPC(0xC000);
-    // env.bus.write(0xC001, 0xAA);
-    // env.bus.write(0xC002, 0xBB);
+// void test_cpu_decode_inc_r8 () {
+//     for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+// 	uint8_t test_opcode = (reg_code << 3) | 0x04;
+//     }
+// }
 
-    // uint16_t r16 {};
+//------------------------------------------------------------------------------
 
-    for (uint8_t opcode = 0x01; opcode <= 0x31; opcode += 0x10) {
+void test_cpu_decode_ld_r8_n8() {
+
+    TestEnv env;
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "reg_code <= 0x%2X", reg_code);
+        uint8_t test_opcode = (reg_code << 3) | 0x06;
+        uint8_t test_value = reg_code + 0x10;
         env.cpu.setPC(0xC000);
         uint16_t test_pc = env.cpu.getPC();
-        uint16_t value = 0x1234 + opcode;
-        uint8_t low_byte = static_cast<uint8_t>(value);
-        uint8_t high_byte = static_cast<uint8_t>(value >> 8);
-        env.bus.write(test_pc, low_byte);
-        env.bus.write(test_pc + 1, high_byte);
-        uint8_t reg_code = env.cpu.decode_r16_dest(opcode);
-        env.cpu.ld_r16_n16(reg_code);
-        uint16_t r16 = env.cpu.get_r16rp(reg_code);
-        assert(r16 == value);
-        assert(env.cpu.getPC() == test_pc + 2);
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        if (reg_code == 0b110) {
+            env.cpu.setHL(0xC500);
+        }
+
+        uint8_t expected = test_value;
+        uint8_t expected_f = env.cpu.getF();
+        uint16_t expected_pc = test_pc + 2;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint16_t actual_pc = env.cpu.getPC();
+        uint8_t actual = env.cpu.get_r8(reg_code);
+        uint8_t actual_f = env.cpu.getF();
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_f, expected_f, ctx);
+        expect_eq(actual_pc, expected_pc, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
     }
 }
 
@@ -584,91 +673,10 @@ void test_cpu_decode_ld_r8_r8() {
 
 //------------------------------------------------------------------------------
 
-void test_cpu_decode_ld_r8_n8() {
-    TestEnv env;
-
-    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
-        char ctx[64];
-        std::snprintf(ctx, sizeof(ctx), "reg_code <= 0x%2X", reg_code);
-        uint8_t test_opcode = (reg_code << 3) | 0x06;
-        uint8_t test_value = reg_code + 0x10;
-        env.cpu.setPC(0xC000);
-        uint16_t test_pc = env.cpu.getPC();
-        env.bus.write(test_pc, test_opcode);
-        env.bus.write(test_pc + 1, test_value);
-
-        poison_state(env);
-        poison_flag(env);
-
-        if (reg_code == 0b110) {
-            env.cpu.setHL(0xC500);
-        }
-
-        uint8_t expected = test_value;
-        uint8_t expected_f = env.cpu.getF();
-        uint16_t expected_pc = test_pc + 2;
-        uint32_t cycles_before = env.cpu.cycles();
-        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
-
-        env.cpu.decode();
-
-        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
-        uint16_t actual_pc = env.cpu.getPC();
-        uint8_t actual = env.cpu.get_r8(reg_code);
-        uint8_t actual_f = env.cpu.getF();
-
-        expect_eq(actual, expected, ctx);
-        expect_eq(actual_f, expected_f, ctx);
-        expect_eq(actual_pc, expected_pc, ctx);
-        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
-    }
-}
-
-//------------------------------------------------------------------------------
-
-void test_cpu_decode_ld_r16_n16() {
-    TestEnv env;
-
-    for (uint8_t test_opcode = 0x01; test_opcode <= 0x31; test_opcode += 0x10) {
-        char ctx[64];
-        std::snprintf(ctx, sizeof(ctx), "test_opcode=0x%02X", test_opcode);
-
-        env.cpu.setPC(0xC000);
-
-        uint8_t test_reg_code = (test_opcode >> 4) & 0x07;
-        uint16_t test_pc = env.cpu.getPC();
-        uint16_t test_value = 0x1234;
-        env.bus.write(test_pc, test_opcode);
-        env.bus.write(test_pc + 0x02, (test_value >> 8));
-        env.bus.write(test_pc + 0x01, test_value);
-
-        poison_state(env);
-        poison_flag(env);
-
-        uint8_t expected_f = env.cpu.getF();
-        uint16_t expected = test_value;
-        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
-        uint32_t cycles_before = env.cpu.cycles();
-
-        env.cpu.decode();
-
-        uint16_t actual = env.cpu.get_r16rp(test_reg_code);
-        uint8_t actual_f = env.cpu.getF();
-        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
-
-        expect_eq(actual, expected, ctx);
-        expect_eq(actual_f, expected_f, ctx);
-        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
-    }
-}
-
-//------------------------------------------------------------------------------
-
 void test_cpu_decode() {
-
-    test_cpu_decode_ld_r8_r8();
     test_cpu_decode_ld_r8_n8();
     test_cpu_decode_ld_r16_n16();
+    test_cpu_decode_ld_r8_r8();
 }
 
 //------------------------------------------------------------------------------
