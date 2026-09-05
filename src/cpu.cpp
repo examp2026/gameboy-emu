@@ -343,10 +343,18 @@ uint16_t CPU::get_n16() {
 
 //--------------------[INSTRUCTIONS SECTION]------------------------------------
 
-void CPU::ld_r8_r8(uint8_t reg_code_l, uint8_t reg_code_r) {
-    uint8_t value = get_r8(reg_code_r);
-    set_r8(reg_code_l, value);
+void CPU::ld_r16_n16(uint8_t reg_code) {
+    uint16_t bytes = get_n16();
+    set_r16rp(reg_code, bytes);
 }
+
+//------------------------------------------------------------------------------
+
+// void CPU::inc_r8(uint8_t reg_code) {
+//     uint8_t value = get_r8(reg_code);
+//     value++;
+//     set_r8(reg_code, value);
+// }
 
 //------------------------------------------------------------------------------
 
@@ -355,11 +363,11 @@ void CPU::ld_r8_n8(uint8_t reg_code_l) {
     set_r8(reg_code_l, value);
 }
 
-//--------------------[IN-PROGRESS]---------------------------------------------
+//------------------------------------------------------------------------------
 
-void CPU::ld_r16_n16(uint8_t reg_code) {
-    uint16_t bytes = get_n16();
-    set_r16rp(reg_code, bytes);
+void CPU::ld_r8_r8(uint8_t reg_code_l, uint8_t reg_code_r) {
+    uint8_t value = get_r8(reg_code_r);
+    set_r8(reg_code_l, value);
 }
 
 //------------------------------------------------------------------------------
@@ -399,16 +407,6 @@ void CPU::decode() {
         break;
     }
 
-    // ld_r8_r8()
-    if ((opcode & 0xC0) == 0x40) {
-        // if(opcode = 0x76){
-        //     // return halt();
-        // }
-        dest_reg_code = decode_r8_dest(opcode);
-        src_reg_code = decode_r8_source(opcode);
-        ld_r8_r8(dest_reg_code, src_reg_code);
-    }
-
     // ld_r8_n8
     switch (opcode) {
     case 0x06:
@@ -424,5 +422,15 @@ void CPU::decode() {
     }
     default:
 	break;
+    }
+    
+    // ld_r8_r8()
+    if ((opcode & 0xC0) == 0x40) {
+        // if(opcode = 0x76){
+        //     // return halt();
+        // }
+        dest_reg_code = decode_r8_dest(opcode);
+        src_reg_code = decode_r8_source(opcode);
+        ld_r8_r8(dest_reg_code, src_reg_code);
     }
 }
