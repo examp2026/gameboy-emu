@@ -59,9 +59,18 @@ void poison_state(TestEnv &env) {
 
 //------------------------------------------------------------------------------
 
+void setup_known_registers(TestEnv &env) {
+    env.cpu.setBC(0x1234);
+    env.cpu.setDE(0x5678);
+    env.cpu.setHL(0x9ABC);
+    env.cpu.setAF(0xDEF0);
+}
+
+//------------------------------------------------------------------------------
+
 void expect_eq(uint8_t actual, uint8_t expected, const char *context) {
     if (actual != expected) {
-        std::printf("FAIL: %s|expected=0x%02X actual=0x%02X\n", context,
+        std::printf("FAIL: %s | expected=0x%02X actual=0x%02X\n", context,
                     expected, actual);
         std::fflush(stdout);
         std::abort();
@@ -99,71 +108,166 @@ void poison_flag(TestEnv &env) { env.cpu.setF(0xFF); }
 //------------------------------------------------------------------------------
 
 void test_cpu_register_pairs() {
+    
     TestEnv env;
 
-    env.cpu.setBC(0xBBAA);
-    assert(env.cpu.getBC() == 0xBBAA);
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_register_pairs(): BC pair");
 
-    env.cpu.setDE(0xBBAA);
-    assert(env.cpu.getDE() == 0xBBAA);
+        poison_state(env);
 
-    env.cpu.setHL(0xBBAA);
-    assert(env.cpu.getHL() == 0xBBAA);
+        uint16_t test_value = 0x1234;
 
-    env.cpu.setAF(0xBBAA);
-    assert(env.cpu.getAF() == 0xBBA0);
+        uint8_t expected_high_byte = static_cast<uint8_t>(test_value >> 8);
+        uint8_t expected_low_byte = static_cast<uint8_t>(test_value);
 
-    env.cpu.setSP(0xAABB);
-    assert(env.cpu.getSP() == 0xAABB);
+        env.cpu.setBC(test_value);
 
-    env.cpu.setPC(0xBBAA);
-    assert(env.cpu.getPC() == 0xBBAA);
-}
+        uint8_t actual_high_byte = env.cpu.get_r8(0b000);
+        uint8_t actual_low_byte = env.cpu.get_r8(0b001);
 
-//------------------------------------------------------------------------------
+        expect_eq(actual_high_byte, expected_high_byte, ctx);
+        expect_eq(actual_low_byte, expected_low_byte, ctx);
+    }
 
-void assert_region_readable(TestEnv &env, uint16_t start, uint16_t end,
-                            uint8_t value) {
-    for (uint16_t address = start; address <= end; address += 0x1) {
-        uint32_t t_cycles_before = env.cpu.cycles();
-        env.bus.write(address, value);
-        uint8_t result = env.cpu.read_byte(address);
-        assert(result == value);
-        assert(env.cpu.cycles() == t_cycles_before + 4);
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_register_pairs(): DE pair");
+
+        poison_state(env);
+
+        uint16_t test_value = 0x1234;
+
+        uint8_t expected_high_byte = static_cast<uint8_t>(test_value >> 8);
+        uint8_t expected_low_byte = static_cast<uint8_t>(test_value);
+
+        env.cpu.setDE(test_value);
+
+        uint8_t actual_high_byte = env.cpu.get_r8(0b010);
+        uint8_t actual_low_byte = env.cpu.get_r8(0b011);
+
+        expect_eq(actual_high_byte, expected_high_byte, ctx);
+        expect_eq(actual_low_byte, expected_low_byte, ctx);
+    }
+
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_register_pairs(): HL pair");
+
+        poison_state(env);
+
+        uint16_t test_value = 0x1234;
+
+        uint8_t expected_high_byte = static_cast<uint8_t>(test_value >> 8);
+        uint8_t expected_low_byte = static_cast<uint8_t>(test_value);
+
+        env.cpu.setHL(test_value);
+
+        uint8_t actual_high_byte = env.cpu.get_r8(0b100);
+        uint8_t actual_low_byte = env.cpu.get_r8(0b101);
+
+        expect_eq(actual_high_byte, expected_high_byte, ctx);
+        expect_eq(actual_low_byte, expected_low_byte, ctx);
+    }
+
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_register_pairs(): AF");
+
+        poison_state(env);
+
+        uint16_t test_value = 0x1234;
+
+        uint8_t expected_high_byte = static_cast<uint8_t>(test_value >> 8);
+        uint8_t expected_low_byte = static_cast<uint8_t>(test_value & 0xF0);
+
+        env.cpu.setAF(test_value);
+
+        uint8_t actual_high_byte = env.cpu.get_r8(0b111);
+        uint8_t actual_low_byte = env.cpu.getF();
+
+        expect_eq(actual_high_byte, expected_high_byte, ctx);
+        expect_eq(actual_low_byte, expected_low_byte, ctx);
+    }
+
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_register_pairs(): SP");
+
+        poison_state(env);
+
+        uint16_t test_value = 0xAABB;
+        uint16_t expected = test_value;
+
+        env.cpu.setSP(test_value);
+
+        uint16_t actual = env.cpu.getSP();
+
+        expect_eq(actual, expected, ctx);
+    }
+
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_register_pairs(): PC");
+
+        uint16_t test_value = 0xBBAA;
+        uint16_t expected = test_value;
+
+        env.cpu.setPC(test_value);
+
+        uint16_t actual = env.cpu.getPC();
+
+        expect_eq(actual, expected, ctx);
     }
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_byte_read() {
+    
     TestEnv env;
 
-    assert_region_readable(env, 0xC000, 0xDFFF, 0xAB);
-    assert_region_readable(env, 0x8000, 0x9FFF, 0xBC);
-    assert_region_readable(env, 0xFF80, 0xFFFE, 0xCA);
-}
+    char ctx[64];
+    std::snprintf(ctx, sizeof(ctx), "test_cpu_byte_read()");
 
-//------------------------------------------------------------------------------
+    uint8_t test_value = 0xAA;
+    uint16_t test_address = 0xC000;
 
-void assert_region_writable(TestEnv &env, uint16_t start, uint16_t end,
-                            uint8_t value) {
-    for (uint16_t address = start; address <= end; address += 0x1) {
-        uint32_t t_cycles_before = env.cpu.cycles();
-        env.cpu.write_byte(address, value);
-        uint8_t result = env.bus.read(address);
-        assert(result == value);
-        assert(env.cpu.cycles() == t_cycles_before + 4);
-    }
+    env.bus.write(test_address, test_value);
+
+    uint8_t expected = test_value;
+    uint32_t expected_t_cycles = 4;
+
+    uint8_t actual = env.cpu.read_byte(test_address);
+    uint32_t actual_t_cycles = env.cpu.cycles();
+
+    expect_eq(actual, expected, ctx);
+    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_byte_write() {
+    
     TestEnv env;
 
-    assert_region_writable(env, 0xC000, 0xCFFF, 0xAB);
-    assert_region_writable(env, 0x8000, 0x9FFF, 0xBC);
-    assert_region_writable(env, 0xFF80, 0xFFFE, 0xCA);
+    char ctx[64];
+    std::snprintf(ctx, sizeof(ctx), "test_cpu_byte_write()");
+
+    uint8_t test_value = 0xDD;
+    uint32_t test_address = 0xC000;
+
+    uint8_t expected = test_value;
+    uint32_t expected_t_cycles = 4;
+
+    env.cpu.write_byte(test_address, test_value);
+
+    uint8_t actual = env.bus.read(test_address);
+    uint32_t actual_t_cycles = env.cpu.cycles();
+
+    expect_eq(actual, expected, ctx);
+    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
 }
 
 //------------------------------------------------------------------------------
@@ -173,194 +277,402 @@ void test_cpu_opcode_field_decoding() {
 
     TestEnv env;
 
-    assert(env.cpu.decode_r8_dest(0xAA) == 0b101);
-    assert(env.cpu.decode_r8_source(0xAA) == 0b010);
-    assert(env.cpu.decode_r16_dest(0xAA) == 0b010);
+    char ctx[64];
 
-    assert(env.cpu.decode_r8_dest(0x00) == 0b000);
-    assert(env.cpu.decode_r8_source(0x00) == 0b000);
-    assert(env.cpu.decode_r16_dest(0x00) == 0b00);
+    uint8_t expected{};
+    uint8_t actual{};
 
-    assert(env.cpu.decode_r8_dest(0xFF) == 0b111);
-    assert(env.cpu.decode_r8_source(0xFF) == 0b111);
-    assert(env.cpu.decode_r16_dest(0xFF) == 0b11);
-}
+    {
+        expected = 0b101;
+        actual = env.cpu.decode_r8_dest(0x6C);
 
-//------------------------------------------------------------------------------
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_opcode_field_decoding(): r8_dest(0x6C)");
 
-void test_cpu_get_r8_generic_access() {
-    TestEnv env;
-
-    // set_r8(), get_r8()
-    for (uint8_t i = 0; i <= 7; i++) {
-        if (i == 6)
-            continue;
-        env.cpu.set_r8(i, 0xAA);
-        // 6(0b110) [HL] pair register must be written to memory, not to
-        // register
+        expect_eq(actual, expected, ctx);
     }
 
-    env.cpu.setHL(0xC000);
-    env.cpu.set_r8(0b110, 0xAA);
-    assert(env.bus.read(0xC000) == 0xAA);
+    {
+        expected = 0b100;
+        actual = env.cpu.decode_r8_source(0x6C);
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_opcode_field_decoding(): r8_source(0x6C)");
+
+        expect_eq(actual, expected, ctx);
+    }
+
+    {
+        expected = 0b10;
+        actual = env.cpu.decode_r16_dest(0x6C);
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_opcode_field_decoding(): r16_dest(0x6C)");
+
+        expect_eq(actual, expected, ctx);
+    }
+
+    //--------------------------------------------------------------------------
+
+    {
+        expected = 0b011;
+        actual = env.cpu.decode_r8_dest(0x1B);
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_opcode_field_decoding(): r8_dest(0x1B)");
+
+        expect_eq(actual, expected, ctx);
+    }
+
+    {
+        expected = 0b011;
+        actual = env.cpu.decode_r8_source(0x1B);
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_opcode_field_decoding(): r8_source(0x1B)");
+
+        expect_eq(actual, expected, ctx);
+    }
+
+    {
+        expected = 0b01;
+        actual = env.cpu.decode_r16_dest(0x1B);
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_opcode_field_decoding(): r16_source(0x1B)");
+
+        expect_eq(actual, expected, ctx);
+    }
 }
 
 //------------------------------------------------------------------------------
 
-void test_cpu_get_n8n16() {
+void test_cpu_set_r8() {
+    
     TestEnv env;
 
-    env.cpu.setPC(0xC000);
-    env.bus.write(0xC000, 0xAA);
-    uint8_t byte = env.cpu.get_n8();
-    uint16_t current_pc = env.cpu.getPC();
+    setup_known_registers(env);
+    env.cpu.set_r8(0b000, 0x99);
+    expect_eq(env.cpu.getBC(), 0x9934, "test_cpu_set_r8(B, 0x99)");
 
-    assert(byte == 0xAA);
-    assert(current_pc == 0xC001);
+    setup_known_registers(env);
+    env.cpu.set_r8(0b001, 0x99);
+    expect_eq(env.cpu.getBC(), 0x1299, "test_cpu_set_r8(C, 0x99)");
 
-    env.cpu.setPC(0xC000);
-    env.bus.write(0xC000, 0xAA);
-    env.bus.write(0xC001, 0xBB);
-    uint16_t bytes = env.cpu.get_n16();
-    current_pc = env.cpu.getPC();
+    setup_known_registers(env);
+    env.cpu.set_r8(0b010, 0x99);
+    expect_eq(env.cpu.getDE(), 0x9978, "test_cpu_set_r8(D, 0x99)");
 
-    assert(bytes == 0xBBAA);
-    assert(current_pc == 0xC002);
+    setup_known_registers(env);
+    env.cpu.set_r8(0b011, 0x99);
+    expect_eq(env.cpu.getDE(), 0x5699, "test_cpu_set_r8(E, 0x99)");
+
+    setup_known_registers(env);
+    env.cpu.set_r8(0b100, 0x99);
+    expect_eq(env.cpu.getHL(), 0x99BC, "test_cpu_set_r8(H, 0x99)");
+
+    setup_known_registers(env);
+    env.cpu.set_r8(0b101, 0x99);
+    expect_eq(env.cpu.getHL(), 0x9A99, "test_cpu_set_r8(L, 0x99)");
+
+    setup_known_registers(env);
+    env.cpu.set_r8(0b111, 0x99);
+    expect_eq(env.cpu.getAF(), 0x99F0, "test_cpu_set_r8(A, 0x99)");
 }
 
 //------------------------------------------------------------------------------
 
-void test_cpu_fetch() {
+void test_cpu_set_r8_hl_indirect() {
+    
     TestEnv env;
 
-    uint32_t t_cycles_before = env.cpu.cycles();
+    setup_known_registers(env);
+    env.cpu.set_r8(0b110, 0x99);
+    expect_eq(env.bus.read(0x9ABC), 0x99, "test_cpu_set_r8_hl_indirect()");
+}
 
-    env.bus.write(0x0000, 0x0A);
-    env.bus.write(0x8000, 0xAB);
-    env.cpu.setPC(0x8000);
+//------------------------------------------------------------------------------
 
-    uint8_t byte = env.cpu.fetch();
+void test_cpu_get_n8() {
 
-    assert(byte == 0xAB);
-    assert(env.cpu.getPC() == 0x8001);
-    assert(env.cpu.cycles() == t_cycles_before + 4);
+    TestEnv env;
+
+    env.cpu.setPC(0xC000);
+    uint8_t test_value = 0x6C;
+    uint16_t test_pc = env.cpu.getPC();
+    env.bus.write(test_pc, test_value);
+
+    uint8_t expected = test_value;
+    uint16_t expected_pc = test_pc + 1;
+
+    uint8_t actual = env.cpu.get_n8();
+    uint16_t actual_pc = env.cpu.getPC();
+
+    expect_eq(actual, expected, "test_cpu_get_n8(): value");
+    expect_eq(actual_pc, expected_pc, "test_cpu_get_n8(): pc");
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_get_n16() {
+
+    TestEnv env;
+
+    uint8_t high_byte = 0x12;
+    uint8_t low_byte = 0x34;
+
+    env.cpu.setPC(0xC000);
+
+    uint16_t test_pc = env.cpu.getPC();
+    uint16_t test_value = (high_byte << 8) | low_byte;
+
+    env.bus.write(test_pc + 1, high_byte);
+    env.bus.write(test_pc, low_byte);
+
+    uint16_t expected = test_value;
+    uint16_t expected_pc = test_pc + 2;
+
+    uint16_t actual = env.cpu.get_n16();
+    uint16_t actual_pc = env.cpu.getPC();
+
+    expect_eq(actual, expected, "test_cpu_get_n16(): value");
+    expect_eq(actual_pc, expected_pc, "test_cpu_get_n16(): pc");
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_fetch_basic() {
+
+    TestEnv env;
+
+    char ctx[64];
+    std::snprintf(ctx, sizeof(ctx), "test_cpu_fetch_basic(): ");
+
+    env.cpu.setPC(0xC000);
+    uint16_t test_pc = env.cpu.getPC();
+    uint8_t test_value = 0x6C;
+    env.bus.write(test_pc, test_value);
+
+    uint8_t expected = test_value;
+    uint16_t expected_pc = test_pc + 1;
+
+    uint8_t actual = env.cpu.fetch();
+    uint16_t actual_pc = env.cpu.getPC();
+
+    // uint8_t actual = env.bus.read(test_pc + 1);
+
+    expect_eq(actual, expected, ctx);
+    expect_eq(actual_pc, expected_pc, "test_cpu_fetch_basic(): pc, ");
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_fetch_wraparound() {
+
+    TestEnv env;
+
+    env.cpu.setPC(0xFFFF);
+    uint16_t test_pc = env.cpu.getPC();
+    uint8_t test_value = 0x6C;
+    env.bus.write(test_pc, test_value);
+
+    uint8_t expected = test_value;
+    uint16_t expected_pc = 0x0000;
+
+    uint8_t actual = env.cpu.fetch();
+    uint16_t actual_pc = env.cpu.getPC();
+
+    expect_eq(actual, expected, "test_cpu_fetch_wraparound(): value, ");
+    expect_eq(actual_pc, expected_pc,
+              "test_cpu_fetch_wraparound(): wraparound, ");
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_get_r16rp() {
+
     TestEnv env;
 
     uint16_t bytes{};
 
+    setup_known_registers(env);
+
     env.cpu.setBC(0x4243);
     bytes = env.cpu.get_r16rp(0b00);
-    assert(bytes == 0x4243);
+    expect_eq(bytes, 0x4243, "test_cpu_get_r16rp(): BC");
+
+    setup_known_registers(env);
 
     env.cpu.setDE(0x4445);
     bytes = env.cpu.get_r16rp(0b01);
-    assert(bytes == 0x4445);
+    expect_eq(bytes, 0x4445, "test_cpu_get_r16rp(): DE");
+
+    setup_known_registers(env);
 
     env.cpu.setHL(0x484C);
     bytes = env.cpu.get_r16rp(0b10);
-    assert(bytes == 0x484C);
+    expect_eq(bytes, 0x484C, "test_cpu_get_r16rp(): HL");
+
+    setup_known_registers(env);
 
     env.cpu.setSP(0x5350);
     bytes = env.cpu.get_r16rp(0b11);
-    assert(bytes == 0x5350);
+    expect_eq(bytes, 0x5350, "test_cpu_get_r16rp(): SP");
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_set_r16rp() {
+
     TestEnv env;
 
+    uint16_t bytes{};
+
+    setup_known_registers(env);
+
     env.cpu.set_r16rp(0b00, 0x4243);
-    assert(0x4243 == env.cpu.getBC());
+    bytes = env.cpu.getBC();
+    expect_eq(bytes, 0x4243, "test_cpu_set_r16rp(): bc");
+
+    setup_known_registers(env);
 
     env.cpu.set_r16rp(0b01, 0x4445);
-    assert(0x4445 == env.cpu.getDE());
+    bytes = env.cpu.getDE();
+    expect_eq(bytes, 0x4445, "test_cpu_set_r16rp(): de");
+
+    setup_known_registers(env);
 
     env.cpu.set_r16rp(0b10, 0x484C);
-    assert(0x484C == env.cpu.getHL());
+    bytes = env.cpu.getHL();
+    expect_eq(bytes, 0x484C, "test_cpu_set_r16rp(): hl");
+
+    setup_known_registers(env);
 
     env.cpu.set_r16rp(0b11, 0x5350);
-    assert(0x5350 == env.cpu.getSP());
+    bytes = env.cpu.getSP();
+    expect_eq(bytes, 0x5350, "test_cpu_set_r16rp(): sp");
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_get_r16rp2() {
+
     TestEnv env;
 
     uint16_t bytes{};
 
+    setup_known_registers(env);
+
     env.cpu.setBC(0x4243);
     bytes = env.cpu.get_r16rp2(0b00);
-    assert(bytes == 0x4243);
+    expect_eq(bytes, 0x4243, "test_cpu_get_r16rp2(): bc");
+
+    setup_known_registers(env);
 
     env.cpu.setDE(0x4445);
     bytes = env.cpu.get_r16rp2(0b01);
-    assert(bytes == 0x4445);
+    expect_eq(bytes, 0x4445, "test_cpu_get_r16rp2(): de");
+
+    setup_known_registers(env);
 
     env.cpu.setHL(0x484C);
     bytes = env.cpu.get_r16rp2(0b10);
-    assert(bytes == 0x484C);
+    expect_eq(bytes, 0x484C, "test_cpu_get_r16rp2(): hl");
+
+    setup_known_registers(env);
 
     env.cpu.setAF(0x4146);
     bytes = env.cpu.get_r16rp2(0b11);
-    assert(bytes == 0x4140);
+    expect_eq(bytes, 0x4140, "test_cpu_get_r16rp2(): af");
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_set_r16rp2() {
+
     TestEnv env;
 
+    uint16_t bytes{};
+
+    setup_known_registers(env);
+
     env.cpu.set_r16rp2(0b00, 0x4243);
-    assert(0x4243 == env.cpu.getBC());
+    bytes = env.cpu.getBC();
+    expect_eq(bytes, 0x4243, "test_cpu_set_r16rp2(): bc");
 
     env.cpu.set_r16rp2(0b01, 0x4445);
-    assert(0x4445 == env.cpu.getDE());
+    bytes = env.cpu.getDE();
+    expect_eq(bytes, 0x4445, "test_cpu_set_r16rp2(): de");
 
     env.cpu.set_r16rp2(0b10, 0x484C);
-    assert(0x484C == env.cpu.getHL());
+    bytes = env.cpu.getHL();
+    expect_eq(bytes, 0x484C, "test_cpu_set_r16rp2(): hl");
 
     env.cpu.set_r16rp2(0b11, 0x4146);
-    assert(0x4140 == env.cpu.getAF());
+    bytes = env.cpu.getAF();
+    expect_eq(bytes, 0x4140, "test_cpu_set_r16rp2(): af");
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_get_r16mem() {
+
     TestEnv env;
 
     uint8_t byte{};
+
+    char ctx[64];
+
+    setup_known_registers(env);
 
     env.bus.write(0xC000, 0xAA);
     env.cpu.setBC(0xC000);
     byte = env.cpu.get_r16mem(0b00);
 
-    assert(byte == 0xAA);
+    expect_eq(byte, 0xAA, "test_cpu_get_r16mem(): bc");
+
+    //--------------------------------------------------------------------------
+
+    setup_known_registers(env);
 
     env.bus.write(0xC001, 0xBB);
     env.cpu.setDE(0xC001);
     byte = env.cpu.get_r16mem(0b01);
 
-    assert(byte == 0xBB);
+    expect_eq(byte, 0xBB, "test_cpu_get_r16mem(): de");
 
-    env.bus.write(0xC002, 0xCC);
-    env.cpu.setHL(0xC002);
-    byte = env.cpu.get_r16mem(0b10);
+    //--------------------------------------------------------------------------
 
-    assert(byte == 0xCC);
-    assert(env.cpu.getHL() == 0xC003);
+    {
+        setup_known_registers(env);
 
-    env.bus.write(0xC003, 0xDD);
-    byte = env.cpu.get_r16mem(0b11);
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_get_r16mem():hl inc");
 
-    assert(byte == 0xDD);
-    assert(env.cpu.getHL() == 0xC002);
+        env.bus.write(0xC002, 0xCC);
+        env.cpu.setHL(0xC002);
+
+        byte = env.cpu.get_r16mem(0b10);
+        uint16_t expected_reg_val = 0xC003;
+        uint16_t actual_reg_val = env.cpu.getHL();
+
+        expect_eq(byte, 0xCC, "test_cpu_get_r16mem(): hl");
+        expect_eq(actual_reg_val, expected_reg_val, ctx);
+    }
+
+    //--------------------------------------------------------------------------
+
+    {
+        setup_known_registers(env);
+
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_get_r16mem():hl dec");
+
+        env.bus.write(0xC010, 0xDD);
+        env.cpu.setHL(0xC010);
+
+        byte = env.cpu.get_r16mem(0b11);
+        uint16_t expected_reg_val = 0xC00F;
+        uint16_t actual_reg_val = env.cpu.getHL();
+
+        expect_eq(byte, 0xDD, "test_cpu_get_r16mem(): hl");
+        expect_eq(actual_reg_val, expected_reg_val, ctx);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -369,39 +681,93 @@ void test_cpu_ld_r16_n16() {
 
     TestEnv env;
 
-    for (uint8_t opcode = 0x01; opcode <= 0x31; opcode += 0x10) {
+    for (uint8_t reg_code = 0b00; reg_code <= 0b11; reg_code++) {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "reg_code=%u", reg_code);
+
+        poison_state(env);
+
         env.cpu.setPC(0xC000);
         uint16_t test_pc = env.cpu.getPC();
-        uint16_t value = 0x1234 + opcode;
-        uint8_t low_byte = static_cast<uint8_t>(value);
-        uint8_t high_byte = static_cast<uint8_t>(value >> 8);
+        uint16_t test_value = reg_code + 0x02;
+        uint8_t high_byte = static_cast<uint8_t>(test_value >> 8);
+        uint8_t low_byte = static_cast<uint8_t>(test_value & 0x00FF);
         env.bus.write(test_pc, low_byte);
         env.bus.write(test_pc + 1, high_byte);
-        uint8_t reg_code = env.cpu.decode_r16_dest(opcode);
+
+        uint16_t expected = test_value;
+        uint16_t expected_pc = test_pc + 2;
+        uint32_t expected_t_cycles = 8; // 12(optable) - 4(fetch) = 8
+        uint32_t cycles_before = env.cpu.cycles();
+
         env.cpu.ld_r16_n16(reg_code);
-        uint16_t r16 = env.cpu.get_r16rp(reg_code);
-        assert(r16 == value);
-        assert(env.cpu.getPC() == test_pc + 2);
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint16_t actual = env.cpu.get_r16rp(reg_code);
+        uint16_t actual_pc = env.cpu.getPC();
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_pc, expected_pc, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
     }
 }
 
 //------------------------------------------------------------------------------
 
-void test_cpu_ld_r8_n8() {
+// void test_cpu_inc_r8() {
 
+//     TestEnv env;
+
+// }
+
+//------------------------------------------------------------------------------
+
+void test_cpu_ld_r8_n8() {
+    
     TestEnv env;
 
-    for (uint8_t opcode = 0x06; opcode <= 0x36; opcode += 0x10) {
-        if (opcode == 0x36) {
-            env.cpu.setHL(0xC000);
-        }
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_ld_r8_n8(): reg_code=%u",
+                      reg_code);
+
+        poison_state(env);
+
         env.cpu.setPC(0xC000);
-        uint8_t value = 0x00 + opcode;
-        env.bus.write(0xC000, value);
-        uint8_t reg_code = env.cpu.decode_r8_dest(opcode);
+
+        if (reg_code == 6)
+            env.cpu.setHL(0xC500);
+
+        uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_value = reg_code + 0x02;
+        env.bus.write(test_pc, test_value);
+
+        uint8_t expected = test_value;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles;
+
+        if (reg_code == 6) {
+            expected_t_cycles = 8;
+        } else {
+            expected_t_cycles = 4;
+        }
+
         env.cpu.ld_r8_n8(reg_code);
-        uint8_t r8 = env.cpu.get_r8(reg_code);
-        assert(r8 == value);
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint16_t actual_pc = env.cpu.getPC();
+        uint8_t actual{};
+
+        if (reg_code == 6) {
+            actual = env.bus.read(0xC500);
+        } else {
+            actual = env.cpu.get_r8(reg_code);
+        }
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_pc, expected_pc, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
     }
 }
 
@@ -411,74 +777,137 @@ void test_cpu_ld_r8_r8() {
 
     TestEnv env;
 
-    for (uint8_t i = 0; i <= 7; ++i) {
-        env.cpu.set_r8(i, 0x00);
-        for (uint8_t j = 0; j <= 7; ++j) {
-            uint8_t value{};
-            if (j != 6) {
-                if (i != 6) {
-                    env.cpu.set_r8(j, 0xAA);
-                    value = env.cpu.get_r8(j);
-                    env.cpu.ld_r8_r8(i, j);
-                    assert(value == env.cpu.get_r8(i));
-                }
-            }
-        }
-    }
-
-    //-----[ (HL)memory R/W test ld_r8_r8() ]-----------------------------------
-
-    env.bus.write(0xC000, 0xAA);
-    env.cpu.setHL(0xC000);
-    for (uint8_t reg_code_l = 0; reg_code_l <= 7; ++reg_code_l) {
-        if (reg_code_l != 4 && reg_code_l != 5) {
-            uint8_t reg_code_r = 6;
-            if (reg_code_l == 6) {
+    for (uint8_t i = 0b000; i <= 0b111; i++) {
+        for (uint8_t j = 0b000; j <= 0b111; j++) {
+            if (i == 6 || j == 6)
                 continue;
-            }
-            env.cpu.ld_r8_r8(reg_code_l, reg_code_r);
-            assert(env.cpu.get_r8(reg_code_l) == env.cpu.get_r8(reg_code_r));
+            char ctx[64];
+            std::snprintf(ctx, sizeof(ctx), "i=%u j=%u", i, j);
+
+            uint8_t test_value = i + 0x02;
+
+            poison_state(env);
+
+            env.cpu.set_r8(j, test_value);
+            uint8_t expected = test_value;
+            uint32_t expected_t_cycles = 0;
+            uint32_t cycles_before = env.cpu.cycles();
+
+            env.cpu.ld_r8_r8(i, j);
+
+            uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+            uint8_t actual = env.cpu.get_r8(i);
+
+            expect_eq(actual, expected, ctx);
+            expect_eq(actual_t_cycles, expected_t_cycles, ctx);
         }
     }
 
-    //-----[ L->(HL); H->(HL); (HL)->L; (HL)->H ld_r8_r8() ]--------------------
+    // hl->r8
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+        if (reg_code == 6)
+            continue;
 
-    // L->(HL)
-    env.bus.write(0xC000, 0xBB);
-    env.cpu.setHL(0xC000);
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "hl->r8: reg_code=%u", reg_code);
 
-    uint8_t H_reg_code = 0b100;
-    uint8_t L_reg_code = 0b101;
-    uint8_t HL_reg_code = 0b110;
+        poison_state(env);
 
-    env.cpu.ld_r8_r8(HL_reg_code, L_reg_code);
-    assert(env.cpu.get_r8(HL_reg_code) == env.cpu.get_r8(L_reg_code));
+        env.cpu.setHL(0xC500);
+        uint16_t test_hl_address = env.cpu.getHL();
+        uint8_t test_value = reg_code + 0x02;
+        env.bus.write(test_hl_address, test_value);
 
-    // H->(HL)
-    env.bus.write(0xC000, 0xBB);
-    env.cpu.ld_r8_r8(HL_reg_code, H_reg_code);
-    assert(env.cpu.get_r8(HL_reg_code) == env.cpu.get_r8(H_reg_code));
+        uint8_t expected = test_value;
+        uint32_t expected_t_cycles = 4;
+        uint32_t cycles_before = env.cpu.cycles();
 
-    // (HL)->L
-    env.bus.write(0xC000, 0xBB);
-    uint8_t temp_HL = env.cpu.get_r8(HL_reg_code);
-    env.cpu.ld_r8_r8(L_reg_code, HL_reg_code);
-    assert(env.cpu.get_r8(L_reg_code) == temp_HL);
+        env.cpu.ld_r8_r8(reg_code, 0b110);
 
-    // (HL)->H
-    env.bus.write(0xC000, 0xB2);
-    env.cpu.setHL(0xC000);
-    temp_HL = env.cpu.get_r8(HL_reg_code);
-    env.cpu.ld_r8_r8(H_reg_code, HL_reg_code);
-    assert(env.cpu.get_r8(H_reg_code) == temp_HL);
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t actual = env.cpu.get_r8(reg_code);
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
+
+    // r8->hl
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+        if (reg_code != 4 && reg_code != 5 && reg_code != 6) {
+            char ctx[64];
+            std::snprintf(ctx, sizeof(ctx), "r8->hl: reg_code=%u", reg_code);
+
+            poison_state(env);
+
+            env.cpu.setHL(0xC500);
+            uint8_t test_value = reg_code + 0x02;
+            env.cpu.set_r8(reg_code, test_value);
+
+            uint8_t expected = test_value;
+            uint32_t expected_t_cycles = 4;
+            uint32_t cycles_before = env.cpu.cycles();
+
+            env.cpu.ld_r8_r8(0b110, reg_code);
+
+            uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+            uint8_t actual = env.bus.read(0xC500);
+
+            expect_eq(actual, expected, ctx);
+            expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+        }
+    }
+
+    // h->hl
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "h->hl");
+
+        poison_state(env);
+
+        env.cpu.setHL(0xC500);
+
+        uint8_t expected = 0xC5;
+        uint32_t expected_t_cycles = 4;
+        uint32_t cycles_before = env.cpu.cycles();
+
+        env.cpu.ld_r8_r8(0b110, 0b100);
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t actual = env.bus.read(0xC500);
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
+
+    // l->hl
+    {
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "l->hl");
+
+        poison_state(env);
+
+        env.cpu.setHL(0xC500);
+
+        uint8_t expected = 0x00;
+        uint32_t expected_t_cycles = 4;
+        uint32_t cycles_before = env.cpu.cycles();
+
+        env.cpu.ld_r8_r8(0b110, 0b101);
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t actual = env.bus.read(0xC500);
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
 }
 
 //------------------------------------------------------------------------------
 
 void test_cpu_instructions_load() {
-    void test_cpu_ld_r16_n16();
-    void test_cpu_ld_r8_n8();
-    void test_cpu_ld_r8_r8();
+    test_cpu_ld_r16_n16();
+    test_cpu_ld_r8_n8();
+    test_cpu_ld_r8_r8();
 }
 
 //------------------------------------------------------------------------------
@@ -636,7 +1065,7 @@ void test_cpu_decode_ld_r8_r8() {
                         expect_eq(actual, expected, ctx);
                         expect_eq(actual_f, expected_f, ctx);
                         expect_eq(actual_t_cycles, expected_t_cycles, ctx);
-                    } else { // LD [HL], 8
+                    } else { // LD [HL], r8
                         env.cpu.setHL(0xC500);
                         env.cpu.set_r8(src, test_value);
                         uint8_t expected = test_value;
@@ -684,10 +1113,12 @@ void test_cpu_decode() {
 int run_cpu_tests() {
     test_cpu_register_pairs();
     test_cpu_opcode_field_decoding();
-    test_cpu_get_r8_generic_access();
-    test_cpu_fetch();
+    test_cpu_set_r8();
+    test_cpu_set_r8_hl_indirect();
+    test_cpu_fetch_basic();
     test_cpu_decode();
-    test_cpu_get_n8n16();
+    test_cpu_get_n8();
+    test_cpu_get_n16();
     test_cpu_get_r16mem();
     test_cpu_get_r16rp();
     test_cpu_set_r16rp();
