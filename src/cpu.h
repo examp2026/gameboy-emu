@@ -62,6 +62,7 @@ class CPU {
     void ld_r16_n16(uint8_t reg_code);
 
     void inc_r8(uint8_t reg_code);
+    void dec_r8(uint8_t reg_code);
 
     void tick(uint16_t delta);
 

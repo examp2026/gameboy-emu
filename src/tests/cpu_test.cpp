@@ -995,6 +995,139 @@ void test_cpu_inc_r8() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_dec_r8() {
+
+    {
+        TestEnv env;
+
+        uint8_t test_reg_code = 0b000;
+        uint8_t test_value = 0x02;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_dec_r8(): test_value=0x%02X",
+                      test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.set_r8(test_reg_code, test_value);
+
+        uint8_t expected = test_value - 1;
+        uint8_t expected_flags = 0b01000000;
+
+        env.cpu.dec_r8(test_reg_code);
+
+        uint8_t actual = env.cpu.get_r8(test_reg_code);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_dec_r8(): value");
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_dec_r8(): test_value=0x%02X, flags",
+                      test_value);
+
+        expect_eq(actual_flags, expected_flags, ctx);
+    }
+
+    {
+        TestEnv env;
+
+        uint8_t test_reg_code = 0b000;
+        uint8_t test_value = 0x01;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_dec_r8(): test_value=0x%02X",
+                      test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.set_r8(test_reg_code, test_value);
+
+        uint8_t expected = test_value - 1;
+        uint8_t expected_flags = 0b11000000;
+
+        env.cpu.dec_r8(test_reg_code);
+
+        uint8_t actual = env.cpu.get_r8(test_reg_code);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_dec_r8(): value");
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_dec_r8(): test_value=0x%02X, flags",
+                      test_value);
+
+        expect_eq(actual_flags, expected_flags, ctx);
+    }
+
+    {
+        TestEnv env;
+
+        uint8_t test_reg_code = 0b000;
+        uint8_t test_value = 0x10;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_dec_r8(): test_value=0x%02X",
+                      test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.set_r8(test_reg_code, test_value);
+
+        uint8_t expected = test_value - 1;
+        uint8_t expected_flags = 0b01100000;
+
+        env.cpu.dec_r8(test_reg_code);
+
+        uint8_t actual = env.cpu.get_r8(test_reg_code);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_dec_r8(): value");
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_dec_r8(): test_value=0x%02X, flags",
+                      test_value);
+
+        expect_eq(actual_flags, expected_flags, ctx);
+    }
+
+    {
+        TestEnv env;
+
+        uint8_t test_reg_code = 0b000;
+        uint8_t test_value = 0x00;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx), "test_cpu_dec_r8(): test_value=0x%02X",
+                      test_value);
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.set_r8(test_reg_code, test_value);
+
+        uint8_t expected = test_value - 1;
+        uint8_t expected_flags = 0b01100000;
+
+        env.cpu.dec_r8(test_reg_code);
+
+        uint8_t actual = env.cpu.get_r8(test_reg_code);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_dec_r8(): value");
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_dec_r8(): test_value=0x%02X, flags",
+                      test_value);
+
+        expect_eq(actual_flags, expected_flags, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_n8() {
 
     TestEnv env;
@@ -1183,6 +1316,7 @@ void test_cpu_instructions_load() {
     test_cpu_ld_r8_r8();
 
     test_cpu_inc_r8();
+    test_cpu_dec_r8();
 }
 
 //------------------------------------------------------------------------------
@@ -1236,7 +1370,7 @@ void test_cpu_decode_inc_r8() {
 
         env.cpu.setPC(0xC000);
         uint16_t test_pc = env.cpu.getPC();
-        uint16_t test_opcode = (reg_code << 3) | 0x04;
+        uint8_t test_opcode = (reg_code << 3) | 0x04;
 
         env.bus.write(test_pc, test_opcode);
 
@@ -1275,6 +1409,54 @@ void test_cpu_decode_inc_r8() {
         if (reg_code == 0b110) {
             expect_eq(env.cpu.getHL(), test_address,
                       "test_cpu_decode_inc_r8(): modified HL!");
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_dec_r8() {
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
+
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setPC(0xC000);
+        uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = (reg_code << 3) | 0x05;
+
+        env.bus.write(test_pc, test_opcode);
+
+        uint8_t test_value = reg_code + 0x02;
+        uint16_t test_address = 0xC500;
+
+        if (reg_code == 0b110) {
+            env.cpu.setHL(test_address);
+        }
+
+        env.cpu.set_r8(reg_code, test_value);
+
+        uint8_t expected = test_value - 1;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t actual = env.cpu.get_r8(reg_code);
+        uint16_t actual_pc = env.cpu.getPC();
+
+        expect_eq(actual, expected, "test_cpu_decode_dec_r8(): value");
+        expect_eq(actual_pc, expected_pc, "test_cpu_decode_dec_r8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_dec_r8(): t_cycles");
+
+        if (reg_code == 0b110) {
+            expect_eq(env.cpu.getHL(), test_address,
+                      "test_cpu_decode_dec_r8(): modified HL!");
         }
     }
 }
@@ -1445,6 +1627,7 @@ void test_cpu_decode() {
     test_cpu_decode_ld_r16_n16();
     test_cpu_decode_ld_r8_r8();
     test_cpu_decode_inc_r8();
+    test_cpu_decode_dec_r8();
 }
 
 //------------------------------------------------------------------------------

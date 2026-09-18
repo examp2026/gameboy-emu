@@ -399,6 +399,21 @@ void CPU::inc_r8(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
+void CPU::dec_r8(uint8_t reg_code) {
+    uint8_t value = get_r8(reg_code);
+    uint8_t result = value - 1;
+
+    bool z = (result == 0);
+    bool n = true;
+    bool h = ((value & 0x0F) == 0x00);
+    bool c = get_flag_c();
+
+    set_r8(reg_code, result);
+    setF(z, n, h, c);
+}
+
+//------------------------------------------------------------------------------
+
 void CPU::ld_r8_n8(uint8_t reg_code_l) {
     uint8_t value = get_n8();
     set_r8(reg_code_l, value);
@@ -465,6 +480,25 @@ void CPU::decode() {
     default:
 	break;
     }
+
+    // inc_r8
+    switch (opcode) {
+    case 0x05:
+    case 0x15:
+    case 0x25:
+    case 0x35:
+    case 0x0D:
+    case 0x1D:
+    case 0x2D:
+    case 0x3D: {
+	dest_reg_code = decode_r8_dest(opcode);
+	dec_r8(dest_reg_code);
+	break;
+    }
+    default:
+	break;
+    }
+
     
     // ld_r8_n8
     switch (opcode) {
