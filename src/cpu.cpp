@@ -23,11 +23,45 @@ void CPU::setHL(uint16_t value) {
 
 //------------------------------------------------------------------------------
 
-void CPU::setF(uint8_t value) { F = value & 0xF0; }
+void CPU::setF(uint8_t value) {
+    F = value & 0xF0;
+}
+
+//------------------------------------------------------------------------------
+
+void CPU::setF(bool z, bool n, bool h, bool c) {
+    uint8_t value =
+	static_cast<uint8_t>((z << 7) | (n << 6) | (h << 5) | (c << 4));
+    setF(value);
+}
 
 //------------------------------------------------------------------------------
 
 uint8_t CPU::getF() { return F; }
+
+//------------------------------------------------------------------------------
+
+bool CPU::get_flag_z() {
+    return (getF() & 0x80) != 0;
+}
+
+//------------------------------------------------------------------------------
+
+bool CPU::get_flag_n() {
+    return (getF() & 0x40) != 0;
+}
+
+//------------------------------------------------------------------------------
+
+bool CPU::get_flag_h() {
+    return (getF() & 0x20) != 0;
+}
+
+//------------------------------------------------------------------------------
+
+bool CPU::get_flag_c() {
+    return (getF() & 0x10) != 0;
+}
 
 //------------------------------------------------------------------------------
 
@@ -350,11 +384,18 @@ void CPU::ld_r16_n16(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
-// void CPU::inc_r8(uint8_t reg_code) {
-//     uint8_t value = get_r8(reg_code);
-//     value++;
-//     set_r8(reg_code, value);
-// }
+void CPU::inc_r8(uint8_t reg_code) {
+    uint8_t value = get_r8(reg_code);
+    uint8_t result = value + 1;
+
+    bool z = (result == 0);
+    bool n = false;
+    bool h = ((value & 0x0F) == 0x0F);
+    bool c = get_flag_c();
+
+    set_r8(reg_code, result);
+    setF(z, n, h, c);
+}
 
 //------------------------------------------------------------------------------
 
@@ -407,6 +448,24 @@ void CPU::decode() {
         break;
     }
 
+    // inc_r8
+    switch (opcode) {
+    case 0x04:
+    case 0x14:
+    case 0x24:
+    case 0x34:
+    case 0x0C:
+    case 0x1C:
+    case 0x2C:
+    case 0x3C: {
+	dest_reg_code = decode_r8_dest(opcode);
+	inc_r8(dest_reg_code);
+	break;
+    }
+    default:
+	break;
+    }
+    
     // ld_r8_n8
     switch (opcode) {
     case 0x06:

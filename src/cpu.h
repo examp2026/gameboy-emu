@@ -41,6 +41,12 @@ class CPU {
 
     uint8_t getF();
     void setF(uint8_t value);
+    void setF(bool z, bool n, bool h, bool c);
+
+    bool get_flag_z();
+    bool get_flag_n();
+    bool get_flag_h();
+    bool get_flag_c();
 
     void setBC(uint16_t value);
     void setDE(uint16_t value);
