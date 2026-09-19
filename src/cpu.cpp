@@ -336,6 +336,38 @@ void CPU::set_r16rp2(uint8_t reg_code, uint16_t value) {
 
 //------------------------------------------------------------------------------
 
+void CPU::set_r16mem(uint8_t reg_code, uint8_t value) {
+    
+    switch (reg_code) {
+    case 0b00: {
+	uint16_t address = getBC();
+	write_byte(address, value);
+	break;
+    }
+    case 0b01: {
+	uint16_t address = getDE();
+	write_byte(address, value);
+	break;
+    }
+    case 0b10: {
+	uint16_t address = getHL();
+	write_byte(address, value);
+	setHL(getHL() + 1);
+	break;
+    }
+    case 0b11: {
+	uint16_t address = getHL();
+	write_byte(address, value);
+	setHL(getHL() - 1);
+	break;
+    }
+    default:
+	break;
+    }
+}
+
+//------------------------------------------------------------------------------
+
 uint8_t CPU::get_r16mem(uint8_t reg_code) {
     switch (reg_code) {
     case 0b00: {
@@ -381,6 +413,10 @@ void CPU::ld_r16_n16(uint8_t reg_code) {
     uint16_t bytes = get_n16();
     set_r16rp(reg_code, bytes);
 }
+
+//------------------------------------------------------------------------------
+
+
 
 //------------------------------------------------------------------------------
 
@@ -450,7 +486,7 @@ void CPU::decode() {
     uint8_t src_reg_code{};
 
     // ld_r16_n16()
-    switch ((opcode)) {
+    switch (opcode) {
     case 0x01:
     case 0x11:
     case 0x21:
@@ -462,6 +498,24 @@ void CPU::decode() {
     default:
         break;
     }
+
+    // //ld_r16mem_a
+    // switch(opcode) {
+    // case 0x02:
+    // 	ld_bc_a();
+    // 	break;
+    // case 0x12:
+    // 	ld_de_a();
+    // 	break;
+    // case 0x22:
+    // 	ld_hl_a_inc();
+    // 	break;
+    // case 0x32:
+    // 	ld_hl_a_dec();
+    // 	break;
+    // default:
+    // 	break;
+    // }
 
     // inc_r8
     switch (opcode) {
@@ -498,7 +552,6 @@ void CPU::decode() {
     default:
 	break;
     }
-
     
     // ld_r8_n8
     switch (opcode) {

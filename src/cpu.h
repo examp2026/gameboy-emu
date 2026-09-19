@@ -24,6 +24,7 @@ class CPU {
     uint16_t get_r16rp2(uint8_t reg_code);
     void set_r16rp2(uint8_t reg_code, uint16_t value);
     uint8_t get_r16mem(uint8_t reg_code);
+    void set_r16mem(uint8_t reg_code, uint8_t value);
 
     uint8_t decode_r8_dest(uint8_t opcode);
     uint8_t decode_r8_source(uint8_t opcode);

@@ -760,6 +760,97 @@ void test_cpu_set_r16rp2() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_set_r16mem() {
+
+    char ctx[64];
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setBC(0xC000);
+
+        uint8_t test_reg_code = 0b00;
+        uint8_t test_value = 0x12;
+
+        uint8_t expected = test_value;
+
+        env.cpu.set_r16mem(test_reg_code, test_value);
+
+        uint8_t actual = env.cpu.get_r16mem(test_reg_code);
+
+        expect_eq(actual, expected, "test_cpu_set_r16mem(): value -> bc");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setDE(0xC000);
+
+        uint8_t test_reg_code = 0b01;
+        uint8_t test_value = 0x23;
+
+        uint8_t expected = test_value;
+
+        env.cpu.set_r16mem(test_reg_code, test_value);
+
+        uint8_t actual = env.cpu.get_r16mem(test_reg_code);
+
+        expect_eq(actual, expected, "test_cpu_set_r16mem(): value -> de");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setHL(0xC000);
+
+        uint8_t test_reg_code = 0b10;
+        uint8_t test_value = 0x32;
+
+        uint8_t expected = test_value;
+        uint16_t expected_reg_val = env.cpu.getHL() + 1;
+
+        env.cpu.set_r16mem(test_reg_code, test_value);
+
+        uint8_t actual = env.bus.read(0xC000);
+        uint16_t actual_reg_val = env.cpu.getHL();
+
+        expect_eq(actual, expected, "test_cpu_set_r16mem(): value -> hl_inc");
+        expect_eq(actual_reg_val, expected_reg_val,
+                  "test_cpu_set_r16mem(): value -> hl_inc");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setHL(0xC000);
+
+        uint8_t test_reg_code = 0b11;
+        uint8_t test_value = 0x34;
+
+        uint8_t expected = test_value;
+        uint16_t expected_reg_val = env.cpu.getHL() - 1;
+
+        env.cpu.set_r16mem(test_reg_code, test_value);
+
+        uint8_t actual = env.bus.read(0xC000);
+        uint16_t actual_reg_val = env.cpu.getHL();
+
+        expect_eq(actual, expected, "test_cpu_set_r16mem(): value -> hl_dec");
+        expect_eq(actual_reg_val, expected_reg_val,
+                  "test_cpu_set_r16mem(): value -> hl_dec");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_get_r16mem() {
 
     TestEnv env;
@@ -1645,6 +1736,7 @@ int run_cpu_tests() {
     test_cpu_decode();
     test_cpu_get_n8();
     test_cpu_get_n16();
+    test_cpu_set_r16mem();
     test_cpu_get_r16mem();
     test_cpu_get_r16rp();
     test_cpu_set_r16rp();
