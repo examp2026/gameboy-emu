@@ -61,6 +61,7 @@ class CPU {
     void ld_r8_n8(uint8_t reg_code_l);
 
     void ld_r16_n16(uint8_t reg_code);
+    void ld_r16mem_a(uint8_t reg_code);
 
     void inc_r8(uint8_t reg_code);
     void dec_r8(uint8_t reg_code);

@@ -953,6 +953,115 @@ void test_cpu_ld_r16_n16() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_ld_r16mem_a() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        uint8_t value = 0x12;
+        env.cpu.set_r8(0b111, value);
+
+        uint8_t reg_code = 0b00;
+        uint16_t address = 0xC000;
+        env.cpu.setBC(address);
+
+        uint8_t expected = value;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 4; // 8(optable) - 4(fetch) = 4
+
+        env.cpu.ld_r16mem_a(reg_code);
+
+        uint8_t actual = env.bus.read(address);
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, "test_cpu_ld_r16mem_a(): a->bc value");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_ld_r16mem_a(): a->bc t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        uint8_t value = 0x23;
+        env.cpu.set_r8(0b111, value);
+
+        uint8_t reg_code = 0b01;
+        uint16_t address = 0xC000;
+        env.cpu.setDE(address);
+
+        uint8_t expected = value;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 4; // 8(optable) - 4(fetch) = 4
+
+        env.cpu.ld_r16mem_a(reg_code);
+
+        uint8_t actual = env.bus.read(address);
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, "test_cpu_ld_r16mem_a(): a->de value");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_ld_r16mem_a(): a->de t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        uint8_t value = 0x23;
+        env.cpu.set_r8(0b111, value);
+
+        uint8_t reg_code = 0b10;
+        uint16_t address = 0xC000;
+        env.cpu.setHL(address);
+
+        uint8_t expected = value;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 4; // 8(optable) - 4(fetch) = 4
+
+        env.cpu.ld_r16mem_a(reg_code);
+
+        uint8_t actual = env.bus.read(address);
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, "test_cpu_ld_r16mem_a(): a->hl_inc value");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_ld_r16mem_a(): a->hl_inc t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        uint8_t value = 0x34;
+        env.cpu.set_r8(0b111, value);
+
+        uint8_t reg_code = 0b11;
+        uint16_t address = 0xC000;
+        env.cpu.setHL(address);
+
+        uint8_t expected = value;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 4; // 8(optable) - 4(fetch) = 4
+
+        env.cpu.ld_r16mem_a(reg_code);
+
+        uint8_t actual = env.bus.read(address);
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, "test_cpu_ld_r16mem_a(): a->hl_decc value");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_ld_r16mem_a(): a->hl_dec t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_inc_r8() {
 
     {
@@ -1403,6 +1512,7 @@ void test_cpu_ld_r8_r8() {
 
 void test_cpu_instructions_load() {
     test_cpu_ld_r16_n16();
+    test_cpu_ld_r16mem_a();
     test_cpu_ld_r8_n8();
     test_cpu_ld_r8_r8();
 
@@ -1446,6 +1556,142 @@ void test_cpu_decode_ld_r16_n16() {
         expect_eq(actual, expected, ctx);
         expect_eq(actual_f, expected_f, ctx);
         expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_ld_r16mem_a() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setPC(0xC000);
+        uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = 0x02;
+        env.bus.write(test_pc, test_opcode);
+
+        env.cpu.setAF(0x1200);
+
+        uint8_t test_value = env.cpu.getAF() >> 8;
+        uint16_t test_address = 0xC500;
+        env.cpu.setBC(test_address);
+
+        uint8_t expected = test_value;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint8_t actual = env.bus.read(test_address);
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles();
+
+        expect_eq(actual, expected,
+                  "test_cpu_decode_ld_r16mem_a(): a->bc value");
+        expect_eq(actual_pc, expected_pc,
+                  "test_cpu_decode_ld_r16mem_a(): a->bc pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_ld_r16mem_a(): a->bc t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setPC(0xC000);
+        uint8_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = 0x12;
+        env.bus.write(test_pc, test_opcode);
+        env.cpu.setAF(0x2300);
+        uint8_t test_value = env.cpu.getAF() >> 8;
+
+        uint16_t test_address = 0xC500;
+        env.cpu.setDE(test_address);
+
+        uint8_t expected = test_value;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint8_t actual = env.bus.read(test_address);
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles();
+
+        expect_eq(actual, expected,
+                  "test_cpu_decode_ld_r16mem_a(): a->de value");
+        expect_eq(actual_pc, expected_pc,
+                  "test_cpu_decode_ld_r16mem_a(): a->de pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_ld_r16mem_a(): a->de t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setPC(0xC000);
+        uint8_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = 0x22;
+        env.bus.write(test_pc, test_opcode);
+        env.cpu.setAF(0x3400);
+        uint8_t test_value = env.cpu.getAF() >> 8;
+        uint16_t test_address = 0xC500;
+        env.cpu.setHL(test_address);
+
+        uint8_t expected = test_value;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint8_t actual = env.bus.read(test_address);
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles();
+
+        expect_eq(actual, expected,
+                  "test_cpu_decode_ld_r16mem_a(): a->hl_inc value");
+        expect_eq(actual_pc, expected_pc,
+                  "test_cpu_decode_ld_r16mem_a(): a->hl_inc pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_ld_r16mem_a(): a->hl_inc t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+
+        env.cpu.setPC(0xC000);
+        uint8_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = 0x32;
+        env.bus.write(test_pc, test_opcode);
+        env.cpu.setAF(0x4500);
+        uint8_t test_value = env.cpu.getAF() >> 8;
+        uint16_t test_address = 0xC500;
+        env.cpu.setHL(test_address);
+
+        uint8_t expected = test_value;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint8_t actual = env.bus.read(test_address);
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles();
+
+        expect_eq(actual, expected,
+                  "test_cpu_decode_ld_r16mem_a(): a->hl_dec value");
+        expect_eq(actual_pc, expected_pc,
+                  "test_cpu_decode_ld_r16mem_a(): a->hl_dec pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_ld_r16mem_a(): a->hl_dec t_cycles");
     }
 }
 
@@ -1714,9 +1960,9 @@ void test_cpu_decode_ld_r8_r8() {
 //------------------------------------------------------------------------------
 
 void test_cpu_decode() {
-    test_cpu_decode_ld_r8_n8();
     test_cpu_decode_ld_r16_n16();
     test_cpu_decode_ld_r8_r8();
+    test_cpu_decode_ld_r8_n8();
     test_cpu_decode_inc_r8();
     test_cpu_decode_dec_r8();
 }

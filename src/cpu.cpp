@@ -416,7 +416,10 @@ void CPU::ld_r16_n16(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
-
+void CPU::ld_r16mem_a(uint8_t reg_code) {
+    uint8_t value = A;
+    set_r16mem(reg_code, value);
+}
 
 //------------------------------------------------------------------------------
 
@@ -499,23 +502,18 @@ void CPU::decode() {
         break;
     }
 
-    // //ld_r16mem_a
-    // switch(opcode) {
-    // case 0x02:
-    // 	ld_bc_a();
-    // 	break;
-    // case 0x12:
-    // 	ld_de_a();
-    // 	break;
-    // case 0x22:
-    // 	ld_hl_a_inc();
-    // 	break;
-    // case 0x32:
-    // 	ld_hl_a_dec();
-    // 	break;
-    // default:
-    // 	break;
-    // }
+    //ld_r16mem_a
+    switch(opcode) {
+    case 0x02:
+    case 0x12:
+    case 0x22:
+    case 0x32:
+	dest_reg_code = decode_r16_dest(opcode);
+	ld_r16mem_a(dest_reg_code);
+	break;
+    default:
+	break;
+    }
 
     // inc_r8
     switch (opcode) {
