@@ -67,7 +67,10 @@ class CPU {
     void inc_r8(uint8_t reg_code);
     void dec_r8(uint8_t reg_code);
 
+    void inc_r16(uint8_t reg_code);
+
     void tick(uint16_t delta);
+    void internal_cycle();
 
     uint32_t cycles();
 
@@ -83,6 +86,7 @@ class CPU {
     uint16_t sp{};
     uint16_t pc{};
     uint32_t t_cycles{};
+    static constexpr uint32_t t_per_m_cycle = 4;
 
     Bus &bus;
 };

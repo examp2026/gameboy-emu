@@ -1062,6 +1062,90 @@ void test_cpu_ld_r16mem_a() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_inc_r16() {
+
+    for (uint8_t test_opcode = 0x03; test_opcode <= 0x33; test_opcode += 0x10) {
+
+        TestEnv env;
+
+        char ctx[64];
+
+        poison_state(env);
+
+        uint8_t test_reg_code = (test_opcode >> 4) & 0x03;
+        uint16_t test_value = test_reg_code + 0x02;
+        env.cpu.set_r16rp(test_reg_code, test_value);
+
+        uint8_t expected_flags = 0x00;
+        uint16_t expected = test_value + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode] - 4;
+
+        env.cpu.inc_r16(test_reg_code);
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual = env.cpu.get_r16rp(test_reg_code);
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_inc_r16(): reg_code=%u, value", test_reg_code);
+
+        expect_eq(actual, expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+        expect_eq(actual_flags, expected_flags, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_inc_r16_wraparound() {
+
+    TestEnv env;
+
+    poison_state(env);
+
+    env.cpu.setBC(0xFFFF);
+
+    uint16_t expected = 0x0000;
+    uint32_t cycles_before = env.cpu.cycles();
+    uint32_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+
+    env.cpu.inc_r16(0b00);
+
+    uint16_t actual = env.cpu.getBC();
+    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(actual, expected, "test_cpu_inc_r16_wraparound(): value");
+    expect_eq(actual_t_cycles, expected_t_cycles,
+              "test_cpu_inc_r16_wraparound(): t_cycles");
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_inc_r16_byte_carry() {
+
+    TestEnv env;
+
+    poison_state(env);
+
+    env.cpu.setBC(0x00FF);
+
+    uint16_t expected = 0x0100;
+    uint32_t cycles_before = env.cpu.cycles();
+    uint32_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+
+    env.cpu.inc_r16(0b00);
+
+    uint16_t actual = env.cpu.getBC();
+    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(actual, expected, "test_cpu_inc_r16_bit_carry(): value");
+    expect_eq(actual_t_cycles, expected_t_cycles,
+              "test_cpu_inc_r16_bit_carry(): t_cycles");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_a_r16mem() {
 
     {
@@ -1637,6 +1721,10 @@ void test_cpu_instructions_load() {
 
     test_cpu_inc_r8();
     test_cpu_dec_r8();
+
+    test_cpu_inc_r16();
+    test_cpu_inc_r16_wraparound();
+    test_cpu_inc_r16_byte_carry();
 }
 
 //------------------------------------------------------------------------------
@@ -1966,6 +2054,63 @@ void test_cpu_decode_ld_a_r16mem() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_inc_r16() {
+
+    for (uint8_t test_opcode = 0x03; test_opcode <= 0x33; test_opcode += 0x10) {
+
+        TestEnv env;
+
+        char ctx[64];
+
+        poison_state(env);
+
+        env.cpu.setPC(0xC000);
+
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_opcode);
+
+        uint8_t test_reg_code = (test_opcode >> 4) & 0x03;
+        uint16_t test_value = 0x1234;
+
+        env.cpu.set_r16rp(test_reg_code, test_value);
+
+        uint16_t expected = test_value + 1;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint16_t actual = env.cpu.get_r16rp(test_reg_code);
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_decode_inc_r16(): value, "
+                      "reg_code=%0x02X",
+                      test_reg_code);
+
+        expect_eq(actual, expected, ctx);
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_decode_inc_r16(): pc, "
+                      "reg_code=%0x02X",
+                      test_reg_code);
+
+        expect_eq(actual_pc, expected_pc, ctx);
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_decode_inc_r16(): t_cycles, "
+                      "reg_code=%0x02X",
+                      test_reg_code);
+
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_inc_r8() {
 
     for (uint8_t reg_code = 0b000; reg_code <= 0b111; reg_code++) {
@@ -2232,6 +2377,7 @@ void test_cpu_decode() {
     test_cpu_decode_ld_r16_n16();
     test_cpu_decode_ld_r16mem_a();
     test_cpu_decode_ld_a_r16mem();
+    test_cpu_decode_inc_r16();
     test_cpu_decode_ld_r8_r8();
     test_cpu_decode_ld_r8_n8();
     test_cpu_decode_inc_r8();

@@ -423,6 +423,15 @@ void CPU::ld_r16mem_a(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
+void CPU::inc_r16(uint8_t reg_code) {
+    internal_cycle();
+    uint16_t value = get_r16rp(reg_code);
+    value++;
+    set_r16rp(reg_code, value);
+}
+
+//------------------------------------------------------------------------------
+
 void CPU::inc_r8(uint8_t reg_code) {
     uint8_t value = get_r8(reg_code);
     uint8_t result = value + 1;
@@ -482,6 +491,10 @@ void CPU::tick(uint16_t delta) { t_cycles += delta; }
 
 //------------------------------------------------------------------------------
 
+void CPU::internal_cycle() { tick(t_per_m_cycle); }
+
+//------------------------------------------------------------------------------
+
 uint8_t CPU::fetch() {
     uint8_t byte = read_byte(pc);
     pc += 1;
@@ -508,8 +521,8 @@ void CPU::decode() {
     default:
         break;
     }
-
-    //ld_r16mem_a
+    
+    // ld_r16mem_a
     switch(opcode) {
     case 0x02:
     case 0x12:
@@ -521,6 +534,21 @@ void CPU::decode() {
     default:
 	break;
     }
+
+    // inc_r16
+
+    switch(opcode) {
+    case 0x03:
+    case 0x13:
+    case 0x23:
+    case 0x33:
+	dest_reg_code = decode_r16_dest(opcode);
+	inc_r16(dest_reg_code);
+	break;
+    default:
+	break;
+    }
+
 
     //ld_a_r16mem
     switch(opcode) {
