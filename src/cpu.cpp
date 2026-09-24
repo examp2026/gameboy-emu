@@ -469,6 +469,13 @@ void CPU::ld_a_r16mem(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
+void CPU::ld_r8_r8(uint8_t reg_code_l, uint8_t reg_code_r) {
+    uint8_t value = get_r8(reg_code_r);
+    set_r8(reg_code_l, value);
+}
+
+//------------------------------------------------------------------------------
+
 void CPU::ld_r8_n8(uint8_t reg_code_l) {
     uint8_t value = get_n8();
     set_r8(reg_code_l, value);
@@ -476,9 +483,11 @@ void CPU::ld_r8_n8(uint8_t reg_code_l) {
 
 //------------------------------------------------------------------------------
 
-void CPU::ld_r8_r8(uint8_t reg_code_l, uint8_t reg_code_r) {
-    uint8_t value = get_r8(reg_code_r);
-    set_r8(reg_code_l, value);
+void CPU::dec_r16(uint8_t reg_code) {
+    internal_cycle();
+    uint16_t value = get_r16rp(reg_code);
+    value--;
+    set_r16rp(reg_code, value);
 }
 
 //------------------------------------------------------------------------------
@@ -611,7 +620,21 @@ void CPU::decode() {
     case 0x3E:{
 	dest_reg_code = decode_r8_dest(opcode);
 	ld_r8_n8(dest_reg_code);
+	// there must be break;
     }
+    default:
+	break;
+    }
+
+    // dec_r16
+    switch(opcode) {
+    case 0x0B:
+    case 0x1B:
+    case 0x2B:
+    case 0x3B:
+	dest_reg_code = decode_r16_dest(opcode);
+	dec_r16(dest_reg_code);
+	break;
     default:
 	break;
     }
