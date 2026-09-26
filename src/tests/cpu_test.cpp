@@ -1580,6 +1580,226 @@ void test_cpu_ld_r8_n8() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_add_HL_r16() {
+
+    for (uint8_t test_opcode = 0x09; test_opcode <= 0x39; test_opcode += 0x10) {
+
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        char ctx[64];
+
+        uint16_t test_reg_code = (test_opcode >> 4) & 0x03;
+
+        uint16_t test_value_HL = 0x1000;
+        env.cpu.setHL(test_value_HL);
+        uint16_t test_value_r16 = 0x0100;
+        env.cpu.set_r16rp(test_reg_code, test_value_r16);
+
+        uint16_t expected{};
+
+        if (test_reg_code == 0x02) {
+            expected = test_value_r16 * 2;
+        } else {
+            expected = test_value_HL + test_value_r16;
+        }
+
+        uint16_t cycles_before = env.cpu.cycles();
+        uint16_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+        uint8_t expected_flags = 0b00000000;
+
+        env.cpu.add_HL_r16(test_reg_code);
+
+        uint16_t actual = env.cpu.getHL();
+        uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t actual_flags = env.cpu.getF();
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_add_hl_r16(): "
+                      "reg_code=%u, value",
+                      test_reg_code);
+
+        expect_eq(actual, expected, ctx);
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_add_hl_r16(): "
+                      "reg_code=%u, t_cycles",
+                      test_reg_code);
+
+        expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_add_hl_r16(): "
+                      "reg_code=%u, flags",
+                      test_reg_code);
+
+        expect_eq(actual_flags, expected_flags, ctx);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_add_HL_r16_wraparound() {
+
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    char ctx[64];
+
+    uint16_t test_value_HL = 0xFFFF;
+
+    env.cpu.setHL(test_value_HL);
+
+    uint8_t test_reg_code = 0b00;
+    uint16_t test_value_r16 = 0x1;
+
+    env.cpu.set_r16rp(test_reg_code, test_value_r16);
+
+    uint16_t expected = test_value_HL + test_value_r16;
+    uint16_t cycles_before = env.cpu.cycles();
+    uint16_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+    uint8_t expected_flags = 0b00110000;
+
+    env.cpu.add_HL_r16(test_reg_code);
+
+    uint16_t actual = env.cpu.getHL();
+    uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+    uint8_t actual_flags = env.cpu.getF();
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_wraparound(): "
+                  "reg_code=%u, value",
+                  test_reg_code);
+
+    expect_eq(actual, expected, ctx);
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_wraparound(): "
+                  "reg_code=%u, t_cycles",
+                  test_reg_code);
+
+    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_wraparound(): "
+                  "reg_code=%u, flags",
+                  test_reg_code);
+
+    expect_eq(actual_flags, expected_flags, ctx);
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_add_HL_r16_wraparound_offset() {
+
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    char ctx[64];
+
+    uint16_t test_value_HL = 0xFFFC;
+
+    env.cpu.setHL(test_value_HL);
+
+    uint8_t test_reg_code = 0b00;
+    uint16_t test_value_r16 = 0x5;
+
+    env.cpu.set_r16rp(test_reg_code, test_value_r16);
+
+    uint16_t expected = test_value_HL + test_value_r16;
+    uint16_t cycles_before = env.cpu.cycles();
+    uint16_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+    uint8_t expected_flags = 0b00110000;
+
+    env.cpu.add_HL_r16(test_reg_code);
+
+    uint16_t actual = env.cpu.getHL();
+    uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+    uint8_t actual_flags = env.cpu.getF();
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_wraparound_offset(): "
+                  "reg_code=%u, value",
+                  test_reg_code);
+
+    expect_eq(actual, expected, ctx);
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_wraparound_offset(): "
+                  "reg_code=%u, t_cycles",
+                  test_reg_code);
+
+    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_wraparound_offset(): "
+                  "reg_code=%u, flags",
+                  test_reg_code);
+
+    expect_eq(actual_flags, expected_flags, ctx);
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_add_HL_r16_half_carry() {
+
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    char ctx[64];
+
+    uint16_t test_value_HL = 0x0FFF;
+
+    env.cpu.setHL(test_value_HL);
+
+    uint8_t test_reg_code = 0b00;
+    uint16_t test_value_r16 = 0x1;
+
+    env.cpu.set_r16rp(test_reg_code, test_value_r16);
+
+    uint16_t expected = test_value_HL + test_value_r16;
+    uint16_t cycles_before = env.cpu.cycles();
+    uint16_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+    uint8_t expected_flags = 0b00100000;
+
+    env.cpu.add_HL_r16(test_reg_code);
+
+    uint16_t actual = env.cpu.getHL();
+    uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+    uint8_t actual_flags = env.cpu.getF();
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_half_carry(): "
+                  "reg_code=%u, value",
+                  test_reg_code);
+
+    expect_eq(actual, expected, ctx);
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_half_carry(): "
+                  "reg_code=%u, t_cycles",
+                  test_reg_code);
+
+    expect_eq(actual_t_cycles, expected_t_cycles, ctx);
+
+    std::snprintf(ctx, sizeof(ctx),
+                  "test_cpu_add_hl_r16_half_carry(): "
+                  "reg_code=%u, flags",
+                  test_reg_code);
+
+    expect_eq(actual_flags, expected_flags, ctx);
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_dec_r16() {
 
     for (uint8_t test_opcode = 0x09; test_opcode <= 39; test_opcode++) {
@@ -1818,6 +2038,11 @@ void test_cpu_instructions_load() {
     test_cpu_dec_r16();
     test_cpu_dec_r16_wraparound();
     test_cpu_dec_r16_byte_borrow();
+
+    test_cpu_add_HL_r16();
+    test_cpu_add_HL_r16_wraparound();
+    test_cpu_add_HL_r16_wraparound_offset();
+    test_cpu_add_HL_r16_half_carry();
 }
 
 //------------------------------------------------------------------------------

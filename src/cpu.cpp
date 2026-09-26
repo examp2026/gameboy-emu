@@ -483,6 +483,23 @@ void CPU::ld_r8_n8(uint8_t reg_code_l) {
 
 //------------------------------------------------------------------------------
 
+void CPU::add_HL_r16(uint8_t reg_code) {
+    internal_cycle();
+    uint16_t HL_value = getHL();
+    uint16_t r16_value = get_r16rp(reg_code);
+    uint32_t result = static_cast<uint32_t>(HL_value) + r16_value;
+
+    bool z = get_flag_z();
+    bool n = false;
+    bool h = ((HL_value & 0x0FFF) + (r16_value & 0x0FFF)) > 0x0FFF;
+    bool c = result > 0xFFFF;
+
+    setHL(static_cast<uint16_t>(result));
+    setF(z, n, h, c);
+}
+
+//------------------------------------------------------------------------------
+
 void CPU::dec_r16(uint8_t reg_code) {
     internal_cycle();
     uint16_t value = get_r16rp(reg_code);
@@ -609,7 +626,7 @@ void CPU::decode() {
     }
     
     // ld_r8_n8
-    switch (opcode) {
+    switch(opcode) {
     case 0x06:
     case 0x16:
     case 0x26:
@@ -622,6 +639,17 @@ void CPU::decode() {
 	ld_r8_n8(dest_reg_code);
 	// there must be break;
     }
+    default:
+	break;
+    }
+
+    // add_hl_r16
+    switch(opcode) {
+    case 0x09:
+    case 0x19:
+    case 0x29:
+    case 0x39:
+	break;
     default:
 	break;
     }

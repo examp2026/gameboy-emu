@@ -70,6 +70,8 @@ class CPU {
     void inc_r16(uint8_t reg_code);
     void dec_r16(uint8_t reg_code);
 
+    void add_HL_r16(uint8_t reg_code);
+
     void tick(uint16_t delta);
     void internal_cycle();
 
