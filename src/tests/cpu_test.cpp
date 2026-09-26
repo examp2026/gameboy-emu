@@ -1889,6 +1889,75 @@ void test_cpu_dec_r16_byte_borrow() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_rlca() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x00;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = (test_value << 1) | (test_value >> 7);
+        uint8_t expected_flags = 0x00;
+
+        env.cpu.rlca();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rlca(): value");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rlca(): value");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x1D;
+        env.cpu.set_r8(0b111, test_value);
+        env.cpu.setF(false, false, false, true);
+
+        uint8_t expected = (test_value << 1) | (test_value >> 7);
+        uint8_t expected_flags = 0x00;
+
+        env.cpu.rlca();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rlca(): value");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rlca(): value");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x8D;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = (test_value << 1) | (test_value >> 7);
+        uint8_t expected_flags = 0x10;
+
+        env.cpu.rlca();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rlca(): value");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rlca(): value");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -2043,6 +2112,8 @@ void test_cpu_instructions_load() {
     test_cpu_add_HL_r16_wraparound();
     test_cpu_add_HL_r16_wraparound_offset();
     test_cpu_add_HL_r16_half_carry();
+
+    test_cpu_rlca();
 }
 
 //------------------------------------------------------------------------------

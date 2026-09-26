@@ -509,6 +509,16 @@ void CPU::dec_r16(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
+void CPU::rlca() {
+    uint8_t msb_A = A >> 7;
+    uint8_t result = static_cast<uint8_t>((A << 1) | msb_A);
+
+    setF(false, get_flag_n(), get_flag_h(), msb_A);
+    A = result;
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -643,6 +653,17 @@ void CPU::decode() {
 	break;
     }
 
+    // rlca, etc...
+    
+    switch(opcode) {
+    case 0x07:
+    case 0x17:
+    case 0x27:
+    case 0x37:
+    default:
+	break;
+    }
+    
     // add_hl_r16
     switch(opcode) {
     case 0x09:
