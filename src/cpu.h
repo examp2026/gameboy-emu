@@ -73,6 +73,7 @@ class CPU {
     void add_HL_r16(uint8_t reg_code);
 
     void rlca();
+    void rla();
 
     void tick(uint16_t delta);
     void internal_cycle();
