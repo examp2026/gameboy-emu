@@ -657,17 +657,21 @@ void CPU::decode() {
     case 0x3E:{
 	dest_reg_code = decode_r8_dest(opcode);
 	ld_r8_n8(dest_reg_code);
-	// there must be break;
+	break;
     }
     default:
 	break;
     }
 
-    // rlca, etc...
+    // rlca, rla, etc...
     
     switch(opcode) {
     case 0x07:
+	rlca();
+	break;
     case 0x17:
+	rla();
+	break;
     case 0x27:
     case 0x37:
     default:
