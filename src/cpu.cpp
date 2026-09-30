@@ -529,6 +529,50 @@ void CPU::rla() {
 
 //------------------------------------------------------------------------------
 
+void CPU::daa() {
+    
+    uint8_t a = static_cast<uint8_t>(A);
+    uint8_t adjustment {};
+
+    bool n_flag = get_flag_n();
+    bool h_flag = get_flag_h();
+    bool c_flag = get_flag_c();
+
+    if(n_flag) {
+	
+	if(h_flag) {
+	    adjustment += 0x06;
+	}
+	
+	if(c_flag) {
+	    adjustment += 0x60;
+	}
+
+	a -= adjustment;
+	
+    } else {
+	
+	if(h_flag || (A & 0x0F) > 0x09) {
+	    adjustment += 0x06;
+	}
+
+	if(c_flag || A > 0x99) {
+	    adjustment += 0x60;
+	    c_flag = true;
+	}
+
+	a += adjustment;
+    }
+
+    A = a;
+    
+    bool z_flag = (A == 0);
+    
+    setF(z_flag, n_flag, false, c_flag);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -673,6 +717,8 @@ void CPU::decode() {
 	rla();
 	break;
     case 0x27:
+	daa();
+	break;
     case 0x37:
     default:
 	break;

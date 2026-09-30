@@ -2067,6 +2067,374 @@ void test_cpu_rla() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_daa_n_is_true() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, true, true, false);
+
+        uint8_t test_value = 0x02;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0xFC;
+        uint8_t expected_flags = 0x40;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optables) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa():1, F(false, true, true, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa():1, F(false, true, true, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa():1, F(false, true, true, false), t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, true, false, true);
+
+        uint8_t test_value = 0x02;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = test_value - 0x60;
+        uint8_t expected_flags = 0x50;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optables) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa():2, F(false, true, false, true), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa():2, F(false, true, false, true), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa():2, F(false, true, false, true), t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, true, false, false);
+
+        uint8_t test_value = 0x00;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = test_value;
+        uint8_t expected_flags = 0xC0;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optables) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa():3, F(false, true, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa():3, F(false, true, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa():3, F(false, true, false, false), t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, true, true, true);
+
+        uint8_t test_value = 0x66;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0x00;
+        uint8_t expected_flags = 0xD0;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optables) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa():4, F(false, true, true, true), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa():4, F(false, true, true, true), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa():4, F(false, true, true, true), t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_daa_n_is_false() {
+
+    // h=0, c=0, (A & 0x0F) > 0x09
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        uint8_t test_value = 0x1A;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0x20;
+        uint8_t expected_flags = 0x00;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: "
+                  "F(false, false, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: "
+                  "F(false, false, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: "
+                  "F(false, false, false, false), flags");
+    }
+
+    // h=1, c=0, (A & 0x0F) < 0x09
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, true, false);
+
+        uint8_t test_value = 0x08;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0x0E;
+        uint8_t expected_flags = 0x00;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: 2, "
+                  "F(false, false, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: 2,  "
+                  "F(false, false, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: 2, "
+                  "F(false, false, false, false), flags");
+    }
+
+    // h=0, c=0, A > 0x99
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        uint8_t test_value = 0xA0;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0x00;       // 00
+        uint8_t expected_flags = 0x90; // 0x90
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: 3, "
+                  "F(false, false, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: 3,  "
+                  "F(false, false, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: 3, "
+                  "F(false, false, false, false), flags");
+    }
+
+    // h=0, c=1, A < 0x99
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, true);
+
+        uint8_t test_value = 0x98;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0xF8;       // 0x00
+        uint8_t expected_flags = 0x10; // 0x90
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: 4, "
+                  "F(false, false, false, true), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: 4,  "
+                  "F(false, false, false, true), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: 4, "
+                  "F(false, false, false, true), flags");
+    }
+
+    // h=1, c=1, A < 0x99
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, true, true);
+
+        uint8_t test_value = 0x98;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0xFE;       // 0xF8
+        uint8_t expected_flags = 0x10; // 0x90
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: 5, "
+                  "F(false, false, false, true), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: 5,  "
+                  "F(false, false, false, true), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: 5, "
+                  "F(false, false, false, true), flags");
+    }
+
+    // h=0, c=0, (A & 0x0F) <  0x09,
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        uint8_t test_value = 0x45;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0x45;       // 0xFE
+        uint8_t expected_flags = 0x00; // 0x10
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: 6, "
+                  "F(false, false, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: 6,  "
+                  "F(false, false, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: 6, "
+                  "F(false, false, false, false), flags");
+    }
+
+    // h=0, c=0, A > 0x99, (A & 0x09) >  0x09
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        uint8_t test_value = 0xFA;
+        env.cpu.set_r8(0b111, test_value);
+
+        uint8_t expected = 0x60;       // 0x45
+        uint8_t expected_flags = 0x10; // 0x00
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optable) - 4(fetch) = 0
+
+        env.cpu.daa();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_daa_n_is_false: 7, "
+                  "F(false, false, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_daa_n_is_false: 7,  "
+                  "F(false, false, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_daa_n_is_false: 7, "
+                  "F(false, false, false, false), flags");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -2224,6 +2592,9 @@ void test_cpu_instructions_load() {
 
     test_cpu_rlca();
     test_cpu_rla();
+
+    test_cpu_daa_n_is_true();
+    test_cpu_daa_n_is_false();
 }
 
 //------------------------------------------------------------------------------
@@ -2899,6 +3270,52 @@ void test_cpu_decode_rla() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_daa() {
+
+    // h=0, c=0, A > 0x99, (A & 0x09) >  0x09
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setPC(0xC000);
+        uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = 0x27;
+
+        env.bus.write(test_pc, test_opcode);
+
+        uint8_t test_value = 0xFA;
+        env.cpu.set_r8(0b111, test_value);
+
+        env.cpu.setF(false, false, false, false);
+
+        uint8_t expected = 0x60;       // 0x45
+        uint8_t expected_flags = 0x10; // 0x00
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        // env.cpu.daa();
+        env.cpu.decode();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected,
+                  "test_cpu_decode_daa(): "
+                  "F(false, false, false, false), value");
+        expect_eq(actual_flags, expected_flags,
+                  "test_cpu_decode_daa(): "
+                  "F(false, false, false, false), flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_daa(): "
+                  "F(false, false, false, false), flags");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_ld_r8_r8() {
     TestEnv env;
 
@@ -3020,6 +3437,7 @@ void test_cpu_decode() {
     test_cpu_decode_dec_r8();
     test_cpu_decode_rlca();
     test_cpu_decode_rla();
+    test_cpu_decode_daa();
 }
 
 //------------------------------------------------------------------------------
