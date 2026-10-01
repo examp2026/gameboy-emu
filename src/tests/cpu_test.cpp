@@ -2435,6 +2435,55 @@ void test_cpu_daa_n_is_false() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_scf() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, true);
+
+        uint8_t expected_flag = 0x10; // 0x90
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optables) - 4(fetch) = 0
+
+        env.cpu.scf();
+
+        uint8_t actual_flag = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flag, expected_flag, "test_cpu_scf(): 1 flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_scf(): 1, flags");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(true, true, true, false);
+
+        uint8_t expected_flag = 0x90;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 0; // 4(optables) - 4(fetch) = 0
+
+        env.cpu.scf();
+
+        uint8_t actual_flag = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flag, expected_flag, "test_cpu_scf(): 1 flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_scf(): 2, flags");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -2595,6 +2644,8 @@ void test_cpu_instructions_load() {
 
     test_cpu_daa_n_is_true();
     test_cpu_daa_n_is_false();
+
+    test_cpu_scf();
 }
 
 //------------------------------------------------------------------------------
@@ -3311,6 +3362,40 @@ void test_cpu_decode_daa() {
         expect_eq(actual_t_cycles, expected_t_cycles,
                   "test_cpu_decode_daa(): "
                   "F(false, false, false, false), flags");
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_scf() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_opcode = 0x37;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_opcode);
+
+        env.cpu.setF(true, true, true, false);
+
+        uint8_t expected_flag = 0x90;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        uint8_t actual_flag = env.cpu.getF();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flag, expected_flag, "test_cpu_scf(): 1 flags");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_scf(): 2, flags");
     }
 }
 
