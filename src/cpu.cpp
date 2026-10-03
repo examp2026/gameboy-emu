@@ -579,6 +579,22 @@ void CPU::scf() {
 
 //------------------------------------------------------------------------------
 
+void CPU::ld_a16mem_sp() {
+    uint8_t high_byte_value = static_cast<uint8_t>(getSP() >> 8);
+    uint8_t low_byte_value = static_cast<uint8_t>(getSP() & 0xFF);
+
+    uint8_t high_byte_address = get_n8();
+    uint8_t low_byte_address = get_n8();
+
+    uint16_t address =
+	(static_cast<uint16_t>(high_byte_address)) << 8 | low_byte_address;
+
+    write_byte(address, high_byte_value);
+    write_byte(address + 1, low_byte_value);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -727,6 +743,16 @@ void CPU::decode() {
 	break;
     case 0x37:
 	scf();
+	break;
+    default:
+	break;
+    }
+
+    // ld_a16mem_sp, etc...
+
+    switch(opcode) {
+    case 0x08:
+	ld_a16mem_sp();
 	break;
     default:
 	break;

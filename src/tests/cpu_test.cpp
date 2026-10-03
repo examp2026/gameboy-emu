@@ -2484,6 +2484,42 @@ void test_cpu_scf() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_ld_a16mem_sp() {
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    env.cpu.setPC(0xC000);
+
+    uint16_t test_pc = env.cpu.getPC();
+
+    env.bus.write(test_pc, 0xC1);
+    env.bus.write(test_pc + 1, 0x23);
+
+    uint16_t test_value = 0x1234;
+
+    env.cpu.setSP(test_value);
+
+    uint16_t expected = test_value;
+    uint16_t cycles_before = env.cpu.cycles();
+    uint16_t expected_t_cycles = 16; // 20(optables) - 4(fetch) = 16
+
+    env.cpu.ld_a16mem_sp();
+
+    uint8_t actual_high_byte = env.bus.read(0xC123);
+    uint8_t actual_low_byte = env.bus.read(0xC124);
+    uint16_t actual =
+        (static_cast<uint16_t>(actual_high_byte)) << 8 | actual_low_byte;
+    uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(actual, expected, "test_cpu_ld_a16mem_sp(): value");
+    expect_eq(actual_t_cycles, expected_t_cycles,
+              "test_cpu_ld_a16mem_sp(): t_cycles");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -2646,6 +2682,8 @@ void test_cpu_instructions_load() {
     test_cpu_daa_n_is_false();
 
     test_cpu_scf();
+
+    test_cpu_ld_a16mem_sp();
 }
 
 //------------------------------------------------------------------------------
@@ -3401,6 +3439,48 @@ void test_cpu_decode_scf() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_ld_a16mem_sp() {
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    env.cpu.setPC(0xC000);
+
+    uint16_t test_pc = env.cpu.getPC();
+    uint16_t test_opcode = 0x08;
+
+    env.bus.write(test_pc, test_opcode);
+    env.bus.write(test_pc + 1, 0xC1);
+    env.bus.write(test_pc + 2, 0x23);
+
+    uint16_t test_value = 0x1234;
+
+    env.cpu.setSP(test_value);
+
+    uint16_t expected = test_value;
+    uint16_t expected_pc = test_pc + 3;
+    uint16_t cycles_before = env.cpu.cycles();
+    uint16_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+    // env.cpu.ld_a16mem_sp();
+    env.cpu.decode();
+
+    uint8_t actual_high_byte = env.bus.read(0xC123);
+    uint8_t actual_low_byte = env.bus.read(0xC124);
+    uint16_t actual =
+        (static_cast<uint16_t>(actual_high_byte)) << 8 | actual_low_byte;
+    uint16_t actual_pc = env.cpu.getPC();
+    uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(actual, expected, "test_cpu_ld_a16mem_sp(): value");
+    expect_eq(actual_pc, expected_pc, "test_cpu_ld_a16mem_sp(): pc");
+    expect_eq(actual_t_cycles, expected_t_cycles,
+              "test_cpu_ld_a16mem_sp(): t_cycles");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_ld_r8_r8() {
     TestEnv env;
 
@@ -3523,6 +3603,7 @@ void test_cpu_decode() {
     test_cpu_decode_rlca();
     test_cpu_decode_rla();
     test_cpu_decode_daa();
+    test_cpu_decode_ld_a16mem_sp();
 }
 
 //------------------------------------------------------------------------------

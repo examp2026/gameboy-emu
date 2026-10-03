@@ -75,6 +75,12 @@ class CPU {
     void rlca();
     void rla();
 
+    void daa();
+
+    void scf();
+
+    void ld_a16mem_sp();
+
     void tick(uint16_t delta);
     void internal_cycle();
 
