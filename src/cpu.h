@@ -81,6 +81,8 @@ class CPU {
 
     void ld_a16mem_sp();
 
+    void jr_e8();
+
     void tick(uint16_t delta);
     void internal_cycle();
 
