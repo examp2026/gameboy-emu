@@ -23,7 +23,7 @@ constexpr uint8_t OPCODE_CYCLES[256] = {
     // 0x20 - 0x2F
     12, 12, 8, 8, 4, 4, 8, 4, 8, 8, 8, 8, 4, 4, 8, 4,
     // 0x30 - 0x3F
-    12, 12, 8, 8, 12, 12, 12, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+    12, 12, 8, 8, 12, 12, 12, 4, 8, 8, 8, 8, 4, 4, 8, 4,
     // 0x40 - 0x4F
     4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
     // 0x50 - 0x5F
@@ -2496,11 +2496,11 @@ void test_cpu_ld_a16mem_sp() {
 
     env.bus.write(test_pc, 0xC1);
     env.bus.write(test_pc + 1, 0x23);
-    
+
     uint16_t test_value = 0x1234;
 
     env.cpu.setSP(test_value);
-    
+
     uint16_t expected = test_value;
     uint16_t cycles_before = env.cpu.cycles();
     uint16_t expected_t_cycles = 16; // 20(optables) - 4(fetch) = 16
@@ -2510,12 +2510,12 @@ void test_cpu_ld_a16mem_sp() {
     uint8_t actual_high_byte = env.bus.read(0xC123);
     uint8_t actual_low_byte = env.bus.read(0xC124);
     uint16_t actual =
-	(static_cast<uint16_t>(actual_high_byte)) << 8 | actual_low_byte;
+        (static_cast<uint16_t>(actual_high_byte)) << 8 | actual_low_byte;
     uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
 
     expect_eq(actual, expected, "test_cpu_ld_a16mem_sp(): value");
     expect_eq(actual_t_cycles, expected_t_cycles,
-	      "test_cpu_ld_a16mem_sp(): t_cycles");
+              "test_cpu_ld_a16mem_sp(): t_cycles");
 }
 
 //------------------------------------------------------------------------------
@@ -2523,97 +2523,94 @@ void test_cpu_ld_a16mem_sp() {
 void test_cpu_jr_e8() {
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0x12;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setPC(0xC000);
 
-	env.bus.write(test_pc, test_value);
+        uint8_t test_value = 0x12;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t expected_flags = 0x00;
-	uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
-    
-	env.cpu.jr_e8();
+        env.bus.write(test_pc, test_value);
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_e8(): t_cycles");
+        env.cpu.jr_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_e8(): t_cycles");
     }
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0x00;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setPC(0xC000);
 
-	env.bus.write(test_pc, test_value);
+        uint8_t test_value = 0x00;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t expected_flags = 0x00;
-	uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
+        env.bus.write(test_pc, test_value);
 
-    
-	env.cpu.jr_e8();
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        env.cpu.jr_e8();
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_e8(): t_cycles");
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_e8(): t_cycles");
     }
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0xFF;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setPC(0xC000);
 
-	env.bus.write(test_pc, test_value);
+        uint8_t test_value = 0xFF;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t expected_flags = 0x00;
-	uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
-    
-	env.cpu.jr_e8();
+        env.bus.write(test_pc, test_value);
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_e8(): t_cycles");
+        env.cpu.jr_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_e8(): t_cycles");
     }
-
-
 }
 
 //------------------------------------------------------------------------------
@@ -2621,136 +2618,266 @@ void test_cpu_jr_e8() {
 void test_cpu_jr_z_e8() {
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setF(true, false, false, false);
+        env.cpu.setF(true, false, false, false);
 
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0x12;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setPC(0xC000);
 
-	env.bus.write(test_pc, test_value);
+        uint8_t test_value = 0x12;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t expected_flags = 0x80;
-	uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
-    
-	env.cpu.jr_z_e8();
+        env.bus.write(test_pc, test_value);
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t expected_flags = 0x80;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 1, pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_z_e8(): t_cycles");
+        env.cpu.jr_z_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 1, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_z_e8(): t_cycles");
     }
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setF(true, false, false, false);
-	
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0x00;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setF(true, false, false, false);
 
-	env.bus.write(test_pc, test_value);
+        env.cpu.setPC(0xC000);
 
-	uint8_t expected_flags = 0x80;
-	uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
+        uint8_t test_value = 0x00;
+        uint16_t test_pc = env.cpu.getPC();
 
-    
-	env.cpu.jr_z_e8();
+        env.bus.write(test_pc, test_value);
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t expected_flags = 0x80;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 2, pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_z_e8(): t_cycles");
+        env.cpu.jr_z_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 2, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_z_e8(): t_cycles");
     }
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setF(true, false, false, false);
-	
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0xFF;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setF(true, false, false, false);
 
-	env.bus.write(test_pc, test_value);
+        env.cpu.setPC(0xC000);
 
-	uint8_t expected_flags = 0x80;
-	uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
-    
-	env.cpu.jr_z_e8();
+        uint8_t test_value = 0xFF;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        env.bus.write(test_pc, test_value);
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 3, pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_z_e8(): t_cycles");
+        uint8_t expected_flags = 0x80;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
+
+        env.cpu.jr_z_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 3, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_z_e8(): t_cycles");
     }
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setF(false, false, false, false);
+        env.cpu.setF(false, false, false, false);
 
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0x12;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setPC(0xC000);
 
-	env.bus.write(test_pc, test_value);
+        uint8_t test_value = 0x12;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t expected_flags = 0x00;
-	uint16_t expected_pc = test_pc + 1;
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
-    
-	env.cpu.jr_z_e8();
+        env.bus.write(test_pc, test_value);
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 4, pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_z_e8(): t_cycles");
+        env.cpu.jr_z_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): 4, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_z_e8(): t_cycles");
     }
-
 }
 
+//------------------------------------------------------------------------------
+
+void test_cpu_jr_c_e8() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, true);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_value = 0x12;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_value);
+
+        uint8_t expected_flags = 0x10;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
+
+        env.cpu.jr_c_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_c_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_c_e8(): 1, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_c_e8(): t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, true);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_value = 0x00;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_value);
+
+        uint8_t expected_flags = 0x10;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
+
+        env.cpu.jr_c_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_c_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_c_e8(): 2, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_c_e8(): t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, true);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_value = 0xFF;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_value);
+
+        uint8_t expected_flags = 0x10;
+        uint16_t expected_pc = (test_pc + 1) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 8; // 12(optables) - 4(fetch) = 8
+
+        env.cpu.jr_c_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_c_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_c_e8(): 3, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_c_e8(): t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_value = 0x12;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_value);
+
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = 4; // 8(optables) - 4(fetch) = 4
+
+        env.cpu.jr_c_e8();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_c_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_c_e8(): 4, pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_c_e8(): t_cycles");
+    }
+}
 
 //------------------------------------------------------------------------------
 
@@ -2921,6 +3048,7 @@ void test_cpu_instructions_load() {
 
     test_cpu_jr_e8();
     test_cpu_jr_z_e8();
+    test_cpu_jr_c_e8();
 }
 
 //------------------------------------------------------------------------------
@@ -3690,11 +3818,11 @@ void test_cpu_decode_ld_a16mem_sp() {
     env.bus.write(test_pc, test_opcode);
     env.bus.write(test_pc + 1, 0xC1);
     env.bus.write(test_pc + 2, 0x23);
-    
+
     uint16_t test_value = 0x1234;
 
     env.cpu.setSP(test_value);
-    
+
     uint16_t expected = test_value;
     uint16_t expected_pc = test_pc + 3;
     uint16_t cycles_before = env.cpu.cycles();
@@ -3706,15 +3834,14 @@ void test_cpu_decode_ld_a16mem_sp() {
     uint8_t actual_high_byte = env.bus.read(0xC123);
     uint8_t actual_low_byte = env.bus.read(0xC124);
     uint16_t actual =
-	(static_cast<uint16_t>(actual_high_byte)) << 8 | actual_low_byte;
+        (static_cast<uint16_t>(actual_high_byte)) << 8 | actual_low_byte;
     uint16_t actual_pc = env.cpu.getPC();
     uint16_t actual_t_cycles = env.cpu.cycles() - cycles_before;
 
     expect_eq(actual, expected, "test_cpu_ld_a16mem_sp(): value");
     expect_eq(actual_pc, expected_pc, "test_cpu_ld_a16mem_sp(): pc");
     expect_eq(actual_t_cycles, expected_t_cycles,
-	      "test_cpu_ld_a16mem_sp(): t_cycles");
-
+              "test_cpu_ld_a16mem_sp(): t_cycles");
 }
 
 //------------------------------------------------------------------------------
@@ -3722,37 +3849,36 @@ void test_cpu_decode_ld_a16mem_sp() {
 void test_cpu_decode_jr_e8() {
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setPC(0xC000);
-    
-	uint8_t test_value = 0x12;
-	uint8_t test_opcode = 0x18;
-	uint16_t test_pc = env.cpu.getPC();
+        env.cpu.setPC(0xC000);
 
-	env.bus.write(test_pc, test_opcode);
-	env.bus.write(test_pc + 1, test_value);
+        uint8_t test_value = 0x12;
+        uint8_t test_opcode = 0x18;
+        uint16_t test_pc = env.cpu.getPC();
 
-	uint8_t expected_flags = 0x00;
-	uint16_t expected_pc = (test_pc + 2) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
-    
-	// env.cpu.jr_e8();
-	env.cpu.decode();
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = (test_pc + 2) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_e8(): t_cycles");
+        // env.cpu.jr_e8();
+        env.cpu.decode();
 
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_e8(): t_cycles");
     }
 }
 
@@ -3761,73 +3887,148 @@ void test_cpu_decode_jr_e8() {
 void test_cpu_decode_jr_z_e8() {
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setF(true, false, false, false);
+        env.cpu.setF(true, false, false, false);
 
-	env.cpu.setPC(0xC000);
+        env.cpu.setPC(0xC000);
 
-	uint8_t test_value = 0x12;
-	uint8_t test_opcode = 0x28;
-	uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_value = 0x12;
+        uint8_t test_opcode = 0x28;
+        uint16_t test_pc = env.cpu.getPC();
 
-	env.bus.write(test_pc, test_opcode);
-	env.bus.write(test_pc + 1, test_value);
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
 
-	uint8_t expected_flags = 0x80;
-	uint16_t expected_pc = (test_pc + 2) + static_cast<int8_t>(test_value);
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode] + 4;
-    
-	// env.cpu.jr_e8();
-	env.cpu.decode();
+        uint8_t expected_flags = 0x80;
+        uint16_t expected_pc = (test_pc + 2) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode] + 4;
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        // env.cpu.jr_e8();
+        env.cpu.decode();
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_z_e8(): t_cycles");
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_z_e8(): t_cycles");
     }
 
     {
-	TestEnv env;
+        TestEnv env;
 
-	poison_state(env);
-	poison_flag(env);
+        poison_state(env);
+        poison_flag(env);
 
-	env.cpu.setF(false, false, false, false);
+        env.cpu.setF(false, false, false, false);
 
-	env.cpu.setPC(0xC000);
+        env.cpu.setPC(0xC000);
 
-	uint8_t test_value = 0x12;
-	uint8_t test_opcode = 0x28;
-	uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_value = 0x12;
+        uint8_t test_opcode = 0x28;
+        uint16_t test_pc = env.cpu.getPC();
 
-	env.bus.write(test_pc, test_opcode);
-	env.bus.write(test_pc + 1, test_value);
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
 
-	uint8_t expected_flags = 0x00;
-	uint16_t expected_pc = test_pc + 2;
-	uint32_t cycles_before = env.cpu.cycles();
-	uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
-    
-	// env.cpu.jr_e8();
-	env.cpu.decode();
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = test_pc + 2;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
 
-	uint8_t actual_flags = env.cpu.getF();
-	uint16_t actual_pc = env.cpu.getPC();
-	uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+        // env.cpu.jr_e8();
+        env.cpu.decode();
 
-	expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
-	expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): pc");
-	expect_eq(actual_t_cycles, expected_t_cycles,
-		  "test_cpu_jr_z_e8(): t_cycles");
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_z_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_z_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_z_e8(): t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_jr_c_e8() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, true);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_value = 0x12;
+        uint8_t test_opcode = 0x38;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
+
+        uint8_t expected_flags = 0x10;
+        uint16_t expected_pc = (test_pc + 2) + static_cast<int8_t>(test_value);
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode] + 4;
+
+        // env.cpu.jr_e8();
+        env.cpu.decode();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_c_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_c_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_c_e8(): t_cycles");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_value = 0x12;
+        uint8_t test_opcode = 0x38;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_opcode);
+        env.bus.write(test_pc + 1, test_value);
+
+        uint8_t expected_flags = 0x00;
+        uint16_t expected_pc = test_pc + 2;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        // env.cpu.jr_e8();
+        env.cpu.decode();
+
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual_flags, expected_flags, "test_cpu_jr_c_e8(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_jr_c_e8(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_jr_c_e8(): t_cycles");
     }
 }
 
@@ -3959,6 +4160,7 @@ void test_cpu_decode() {
     test_cpu_decode_scf();
     test_cpu_decode_jr_e8();
     test_cpu_decode_jr_z_e8();
+    test_cpu_decode_jr_c_e8();
 }
 
 //------------------------------------------------------------------------------

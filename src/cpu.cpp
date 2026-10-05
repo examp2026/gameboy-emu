@@ -613,6 +613,16 @@ void CPU::jr_z_e8() {
 
 //------------------------------------------------------------------------------
 
+void CPU::jr_c_e8() {
+    int8_t offset = static_cast<int8_t>(get_n8());
+    if(get_flag_c()) {
+	internal_cycle();
+	pc += offset;
+    }
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -776,6 +786,9 @@ void CPU::decode() {
 	break;
     case 0x28:
 	jr_z_e8();
+	break;
+    case 0x38:
+	jr_c_e8();
 	break;
     default:
 	break;
