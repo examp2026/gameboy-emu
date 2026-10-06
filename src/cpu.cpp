@@ -623,6 +623,16 @@ void CPU::jr_c_e8() {
 
 //------------------------------------------------------------------------------
 
+void CPU::jr_nz_e8() {
+    int8_t offset = static_cast<int8_t>(get_n8());
+    if(!get_flag_z()) {
+	internal_cycle();
+	pc += offset;
+    }
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -648,8 +658,23 @@ void CPU::decode() {
     uint8_t dest_reg_code{};
     uint8_t src_reg_code{};
 
+    // nop, stop, jr_nz_e8, jr_nc_e8
+    switch(opcode) {
+    case 0x00:
+	break;
+    case 0x10:
+	break;
+    case 0x20:
+	jr_nz_e8();
+	break;
+    case 0x30:
+	break;
+    default:
+	break;
+    }
+    
     // ld_r16_n16()
-    switch (opcode) {
+    switch(opcode) {
     case 0x01:
     case 0x11:
     case 0x21:
