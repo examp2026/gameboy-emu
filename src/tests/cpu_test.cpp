@@ -2,6 +2,20 @@
 #include <cassert>
 
 namespace {
+
+struct CPUSnapshot {
+    uint8_t a, b, c, d, e, h, l, f;
+    uint16_t pc, sp;
+
+    bool operator==(const CPUSnapshot &other) const {
+        return a == other.a && b == other.b && c == other.c && d == other.d &&
+               e == other.e && h == other.h && l == other.l && pc == other.pc &&
+               sp == other.sp && f == other.f;
+    }
+};
+
+//------------------------------------------------------------------------------
+
 struct TestEnv {
     Sram sram;
     Cartridge cartridge;
@@ -11,6 +25,24 @@ struct TestEnv {
     TestEnv()
         : cartridge(sram, std::vector<uint8_t>(0x8000, 0x00)), bus(cartridge),
           cpu(bus) {}
+
+    CPUSnapshot take_snapshot() {
+        CPUSnapshot s;
+
+        s.a = cpu.get_r8(0b111);
+        s.b = cpu.get_r8(0b000);
+        s.c = cpu.get_r8(0b001);
+        s.d = cpu.get_r8(0b010);
+        s.e = cpu.get_r8(0b011);
+        s.h = cpu.get_r8(0b100);
+        s.l = cpu.get_r8(0b101);
+        s.f = cpu.getF();
+
+        s.pc = cpu.getPC();
+        s.sp = cpu.getSP();
+
+        return s;
+    }
 };
 
 //------------------------------------------------------------------------------
@@ -68,6 +100,8 @@ void setup_known_registers(TestEnv &env) {
 
 //------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+
 void expect_eq(uint8_t actual, uint8_t expected, const char *context) {
     if (actual != expected) {
         std::printf("FAIL: %s | expected=0x%02X actual=0x%02X\n", context,
@@ -105,6 +139,35 @@ void expect_eq(bool actual, bool expected, const char *context) {
     if (actual != expected) {
         std::printf("FAIL: %s | expected=%s actual=%s\n", context,
                     expected ? "true" : "false", actual ? "true" : "false");
+        std::fflush(stdout);
+        std::abort();
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void snapshot_to_str(const CPUSnapshot &s, char *buf, size_t size) {
+    snprintf(buf, size,
+             "[A:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X | "
+             "PC:%04X SP:%04X]",
+             s.a, s.b, s.c, s.d, s.e, s.h, s.l, s.pc, s.sp);
+}
+
+//------------------------------------------------------------------------------
+
+void expect_eq(const CPUSnapshot &actual, const CPUSnapshot &expected,
+               const char *context) {
+    if (!(actual == expected)) {
+        char act_buf[128];
+        char exp_buf[128];
+
+        snapshot_to_str(expected, exp_buf, sizeof(exp_buf));
+        snapshot_to_str(actual, act_buf, sizeof(act_buf));
+
+        std::printf("FAIL: %s\n", context);
+        std::printf(" expected: %s\n", exp_buf);
+        std::printf(" actual: %s\n", act_buf);
+
         std::fflush(stdout);
         std::abort();
     }
@@ -3147,6 +3210,30 @@ void test_cpu_jr_nc_e8() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_nop() {
+
+    TestEnv env;
+
+    poison_flag(env);
+
+    env.cpu.setF(false, false, false, false);
+
+    CPUSnapshot cpu_before = env.take_snapshot();
+
+    env.cpu.nop();
+
+    CPUSnapshot cpu_after = env.take_snapshot();
+
+    CPUSnapshot cpu_expected = cpu_before;
+    CPUSnapshot cpu_actual = cpu_after;
+
+    cpu_expected.pc = cpu_before.pc;
+
+    expect_eq(cpu_actual, cpu_expected, "test_cpu_nop(): cpu");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -3317,6 +3404,8 @@ void test_cpu_instructions_load() {
     test_cpu_jr_c_e8();
     test_cpu_jr_nz_e8();
     test_cpu_jr_nc_e8();
+
+    test_cpu_nop();
 }
 
 //------------------------------------------------------------------------------
@@ -4378,6 +4467,42 @@ void test_cpu_decode_jr_nz_e8() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_nop() {
+
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    env.cpu.setF(false, false, false, false);
+    env.cpu.setPC(0xC000);
+
+    uint8_t test_opcode = 0x00;
+    uint16_t test_pc = env.cpu.getPC();
+
+    env.bus.write(test_pc, test_opcode);
+
+    CPUSnapshot cpu_before = env.take_snapshot();
+    uint32_t cycles_before = env.cpu.cycles();
+    uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+    // env.cpu.nop();
+    env.cpu.decode();
+
+    CPUSnapshot cpu_after = env.take_snapshot();
+    CPUSnapshot cpu_expected = cpu_before;
+    CPUSnapshot cpu_actual = cpu_after;
+
+    cpu_expected.pc = cpu_before.pc + 1;
+
+    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(cpu_actual, cpu_expected, "test_cpu_nop(): cpu");
+    expect_eq(actual_t_cycles, expected_t_cycles, "test_cpu_nop(): t_cycles");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_jr_nc_e8() {
 
     {
@@ -4583,6 +4708,7 @@ void test_cpu_decode() {
     test_cpu_decode_jr_c_e8();
     test_cpu_decode_jr_nz_e8();
     test_cpu_decode_jr_nc_e8();
+    test_cpu_decode_nop();
 }
 
 //------------------------------------------------------------------------------

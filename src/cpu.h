@@ -87,6 +87,8 @@ class CPU {
     void jr_nz_e8();
     void jr_nc_e8();
 
+    void nop();
+
     void tick(uint16_t delta);
     void internal_cycle();
 
