@@ -88,6 +88,7 @@ class CPU {
     void jr_nc_e8();
 
     void nop();
+    void stop();
 
     void tick(uint16_t delta);
     void internal_cycle();
@@ -107,6 +108,7 @@ class CPU {
     uint16_t pc{};
     uint32_t t_cycles{};
     static constexpr uint32_t t_per_m_cycle = 4;
+    bool is_stopped = false;
 
     Bus &bus;
 };

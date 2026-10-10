@@ -3234,6 +3234,30 @@ void test_cpu_nop() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_stop() {
+
+    TestEnv env;
+
+    poison_flag(env);
+
+    env.cpu.setF(false, false, false, false);
+
+    CPUSnapshot cpu_before = env.take_snapshot();
+
+    env.cpu.stop();
+
+    CPUSnapshot cpu_after = env.take_snapshot();
+
+    CPUSnapshot cpu_expected = cpu_before;
+    CPUSnapshot cpu_actual = cpu_after;
+
+    cpu_expected.pc = cpu_before.pc + 1;
+
+    expect_eq(cpu_actual, cpu_expected, "test_cpu_stop(): cpu");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -3406,6 +3430,7 @@ void test_cpu_instructions_load() {
     test_cpu_jr_nc_e8();
 
     test_cpu_nop();
+    test_cpu_stop();
 }
 
 //------------------------------------------------------------------------------
@@ -4503,6 +4528,42 @@ void test_cpu_decode_nop() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_stop() {
+
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    env.cpu.setF(false, false, false, false);
+    env.cpu.setPC(0xC000);
+
+    uint8_t test_opcode = 0x10;
+    uint16_t test_pc = env.cpu.getPC();
+
+    env.bus.write(test_pc, test_opcode);
+
+    CPUSnapshot cpu_before = env.take_snapshot();
+    uint32_t cycles_before = env.cpu.cycles();
+    uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+    // env.cpu.stop();
+    env.cpu.decode();
+
+    CPUSnapshot cpu_after = env.take_snapshot();
+    CPUSnapshot cpu_expected = cpu_before;
+    CPUSnapshot cpu_actual = cpu_after;
+
+    cpu_expected.pc = cpu_before.pc + 2;
+
+    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(cpu_actual, cpu_expected, "test_cpu_nop(): cpu");
+    expect_eq(actual_t_cycles, expected_t_cycles, "test_cpu_nop(): t_cycles");
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_jr_nc_e8() {
 
     {
@@ -4709,6 +4770,7 @@ void test_cpu_decode() {
     test_cpu_decode_jr_nz_e8();
     test_cpu_decode_jr_nc_e8();
     test_cpu_decode_nop();
+    test_cpu_decode_stop();
 }
 
 //------------------------------------------------------------------------------
