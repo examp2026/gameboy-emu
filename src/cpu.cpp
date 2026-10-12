@@ -658,6 +658,14 @@ void CPU::stop() {
 
 //------------------------------------------------------------------------------
 
+void CPU::rrca() {
+    bool carry = A & 1;
+    A = (A >> 1) | (A << 7);
+    setF(false, false, false, carry);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -866,6 +874,16 @@ void CPU::decode() {
     case 0x3B:
 	dest_reg_code = decode_r16_dest(opcode);
 	dec_r16(dest_reg_code);
+	break;
+    default:
+	break;
+    }
+
+    // rrca, etc...
+
+    switch(opcode){
+    case 0x0F:
+	rrca();
 	break;
     default:
 	break;

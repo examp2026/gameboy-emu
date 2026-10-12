@@ -90,6 +90,8 @@ class CPU {
     void nop();
     void stop();
 
+    void rrca();
+
     void tick(uint16_t delta);
     void internal_cycle();
 
