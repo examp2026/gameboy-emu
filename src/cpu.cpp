@@ -659,8 +659,17 @@ void CPU::stop() {
 //------------------------------------------------------------------------------
 
 void CPU::rrca() {
-    bool carry = A & 1;
+    bool carry = A & 0x01;
     A = (A >> 1) | (A << 7);
+    setF(false, false, false, carry);
+}
+
+//------------------------------------------------------------------------------
+
+void CPU::rra() {
+    bool carry = static_cast<uint8_t>(A & 1);
+    A = static_cast<uint8_t>((A >> 1) | (get_flag_c() << 7));
+
     setF(false, false, false, carry);
 }
 
@@ -884,6 +893,9 @@ void CPU::decode() {
     switch(opcode){
     case 0x0F:
 	rrca();
+	break;
+    case 0x1F:
+	rra();
 	break;
     default:
 	break;

@@ -3331,6 +3331,136 @@ void test_cpu_rrca() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_rra() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x00;
+        env.cpu.set_r8(0b111, test_value);
+
+        bool test_flag_c = false; // 0
+        env.cpu.setF(false, false, false, test_flag_c);
+
+        uint8_t expected = 0x00; // 0x01
+        // static_cast<uint8_t>((test_value >> 1) | env.cpu.get_flag_c());
+        uint8_t expected_flags = 0x00; // 0x01
+
+        env.cpu.rra();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rra():1, value: 0x00");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rra(): 1, c=false");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x80;
+        env.cpu.set_r8(0b111, test_value);
+
+        bool test_flag_c = false; // 0
+        env.cpu.setF(false, false, false, test_flag_c);
+
+        uint8_t expected = 0x40; // 0x00
+        // static_cast<uint8_t>((test_value >> 1) | env.cpu.get_flag_c());
+        uint8_t expected_flags = 0x00; // 0x01
+
+        env.cpu.rra();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rra(): 2, value: 0x00");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rra(): 2, c=false");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x10;
+        env.cpu.set_r8(0b111, test_value);
+
+        bool test_flag_c = false; // 0
+        env.cpu.setF(false, false, false, test_flag_c);
+
+        uint8_t expected = 0x08; // 0x40
+        // static_cast<uint8_t>((test_value >> 1) | env.cpu.get_flag_c());
+        uint8_t expected_flags = 0x00; // 0x01
+
+        env.cpu.rra();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rra(): 3, value: 0x00");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rra(): 3, c=false");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x01;
+        env.cpu.set_r8(0b111, test_value);
+
+        bool test_flag_c = false; // 0
+        env.cpu.setF(false, false, false, test_flag_c);
+
+        uint8_t expected = 0x00; // 0x40
+        // static_cast<uint8_t>((test_value >> 1) | env.cpu.get_flag_c());
+        uint8_t expected_flags = 0x10; // 0x00
+
+        env.cpu.rra();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rra(): 4, value: 0x00");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rra(): 4, c=false");
+    }
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t test_value = 0x00;
+        env.cpu.set_r8(0b111, test_value);
+
+        bool test_flag_c = true; // 0
+        env.cpu.setF(false, false, false, test_flag_c);
+
+        uint8_t expected = 0x80; // 0x00
+        // static_cast<uint8_t>((test_value >> 1) | env.cpu.get_flag_c());
+        uint8_t expected_flags = 0x00; // 0x10
+
+        env.cpu.rra();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+
+        expect_eq(actual, expected, "test_cpu_rra():5, value: 0x00");
+        expect_eq(actual_flags, expected_flags, "test_cpu_rra(): 5, c=true");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_ld_r8_r8() {
 
     TestEnv env;
@@ -3506,6 +3636,7 @@ void test_cpu_instructions_load() {
     test_cpu_stop();
 
     test_cpu_rrca();
+    test_cpu_rra();
 }
 
 //------------------------------------------------------------------------------
@@ -4758,6 +4889,52 @@ void test_cpu_decode_rrca() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_rra() {
+
+    {
+        TestEnv env;
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_opcode = 0x1F;
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_opcode);
+
+        uint8_t test_value = 0x00;
+        env.cpu.set_r8(0b111, test_value);
+
+        bool test_flag_c = true; // 0
+        env.cpu.setF(false, false, false, test_flag_c);
+
+        uint8_t expected = 0x80; // 0x00
+        // static_cast<uint8_t>((test_value >> 1) | env.cpu.get_flag_c());
+        uint8_t expected_flags = 0x00; // 0x10
+        uint16_t expected_pc = test_pc + 1;
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        // env.cpu.rra();
+        env.cpu.decode();
+
+        uint8_t actual = env.cpu.get_r8(0b111);
+        uint8_t actual_flags = env.cpu.getF();
+        uint16_t actual_pc = env.cpu.getPC();
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(actual, expected, "test_cpu_decode_rra(): value");
+        expect_eq(actual_flags, expected_flags, "test_cpu_decode_rra(): flags");
+        expect_eq(actual_pc, expected_pc, "test_cpu_decode_rra(): pc");
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_rra(): pc");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_ld_r8_r8() {
     TestEnv env;
 
@@ -4890,6 +5067,7 @@ void test_cpu_decode() {
     test_cpu_decode_nop();
     test_cpu_decode_stop();
     test_cpu_decode_rrca();
+    test_cpu_decode_rra();
 }
 
 //------------------------------------------------------------------------------
