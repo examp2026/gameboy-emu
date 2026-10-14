@@ -523,7 +523,7 @@ void CPU::rla() {
     uint8_t msb_A = A >> 7;
     uint8_t result = static_cast<uint8_t>((A << 1) | get_flag_c());
     
-    setF(false, get_flag_n(), get_flag_h(), msb_A);
+    setF(false, false, false, msb_A);
     A = result;
 }
 
