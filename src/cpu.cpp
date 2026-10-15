@@ -682,6 +682,14 @@ void CPU::cpl() {
 
 //------------------------------------------------------------------------------
 
+void CPU::ccf() {
+    uint8_t c_flag = get_flag_c();
+    c_flag = static_cast<uint8_t>(~c_flag) & 0x01;
+    setF(get_flag_z(), false, false, c_flag);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -906,6 +914,9 @@ void CPU::decode() {
 	break;
     case 0x2F:
 	cpl();
+	break;
+    case 0x3F:
+	ccf();
 	break;
     default:
 	break;
