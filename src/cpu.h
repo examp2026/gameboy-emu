@@ -93,6 +93,8 @@ class CPU {
     void rrca();
     void rra();
 
+    void cpl();
+
     void tick(uint16_t delta);
     void internal_cycle();
 
