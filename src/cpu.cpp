@@ -690,6 +690,25 @@ void CPU::ccf() {
 
 //------------------------------------------------------------------------------
 
+void CPU::add_a_r8(uint8_t reg_code) {
+
+    uint8_t value = get_r8(reg_code);
+    
+    bool h = ((A & 0x0F) + (value & 0x0F)) > 0x0F;
+    
+    uint16_t result = A + value;
+    
+    A = result;
+    
+    bool c = result > 0xFF;
+    
+    bool z = (A == 0);
+
+    setF(z, false, h, c);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------

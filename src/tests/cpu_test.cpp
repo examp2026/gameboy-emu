@@ -47,6 +47,22 @@ struct TestEnv {
 
 //------------------------------------------------------------------------------
 
+struct Add_a_r8_edge_case {
+    uint8_t a{};
+    uint8_t r8{};
+
+    bool expected_z_flag{};
+    bool expected_h_flag{};
+    bool expected_c_flag{};
+};
+
+Add_a_r8_edge_case add_a_r8_edge_case[] = {
+    {0x00, 0x01, 0, 0, 0}, {0x10, 0xF1, 0, 0, 1}, {0x01, 0xF, 0, 1, 0},
+    {0x02, 0xFF, 0, 1, 1}, {0x00, 0x00, 1, 0, 0}, {0x10, 0xF0, 1, 0, 1},
+    {0x01, 0xFF, 1, 1, 1}, {0x80, 0x80, 1, 0, 1}};
+
+//------------------------------------------------------------------------------
+
 constexpr uint8_t OPCODE_CYCLES[256] = {
     // 0x00 - 0x0F
     4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
@@ -3761,6 +3777,52 @@ void test_cpu_ld_r8_r8() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_add_a_r8() {
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; ++reg_code) {
+        TestEnv env;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_add_a_r8():reg_code=0x%02X, cpu", reg_code);
+
+        poison_state(env);
+        poison_flag(env);
+
+        uint8_t a_test_value = add_a_r8_edge_case[reg_code].a;
+        env.cpu.set_r8(0b111, a_test_value);
+
+        uint8_t r8_test_value = add_a_r8_edge_case[reg_code].r8;
+        env.cpu.set_r8(reg_code, r8_test_value);
+
+        CPUSnapshot cpu_before = env.take_snapshot();
+
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = (reg_code == 0b110) ? 4 : 0;
+
+        env.cpu.add_a_r8(reg_code);
+
+        CPUSnapshot cpu_after = env.take_snapshot();
+
+        CPUSnapshot cpu_expected = cpu_before;
+        CPUSnapshot cpu_actual = cpu_after;
+
+        cpu_expected.a = static_cast<uint8_t>(a_test_value + r8_test_value);
+        cpu_expected.f = static_cast<uint8_t>(
+            add_a_r8_edge_case[reg_code].expected_z_flag << 7 | 0 << 6 |
+            add_a_r8_edge_case[reg_code].expected_h_flag << 5 |
+            add_a_r8_edge_case[reg_code].expected_c_flag << 4);
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(cpu_actual, cpu_expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_add_a_r8(): t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_instructions_load() {
     test_cpu_ld_r16_n16();
     test_cpu_ld_r16mem_a();
@@ -3809,6 +3871,8 @@ void test_cpu_instructions_load() {
 
     test_cpu_cpl();
     test_cpu_ccf();
+
+    test_cpu_add_a_r8();
 }
 
 //------------------------------------------------------------------------------
