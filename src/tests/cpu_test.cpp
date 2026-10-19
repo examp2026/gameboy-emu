@@ -5251,6 +5251,64 @@ void test_cpu_decode_rra() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_decode_add_a_r8() {
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; ++reg_code) {
+        TestEnv env;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_add_a_r8():reg_code=0x%02X, cpu", reg_code);
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        env.cpu.setPC(0xC000);
+
+        uint8_t test_opcode = static_cast<uint8_t>(0x02 << 6 | reg_code);
+        uint16_t test_pc = env.cpu.getPC();
+
+        env.bus.write(test_pc, test_opcode);
+
+        uint8_t a_test_value = add_a_r8_edge_case[reg_code].a;
+        env.cpu.set_r8(0b111, a_test_value);
+
+        uint8_t r8_test_value = add_a_r8_edge_case[reg_code].r8;
+        env.cpu.set_r8(reg_code, r8_test_value);
+
+        CPUSnapshot cpu_before = env.take_snapshot();
+
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+        //(reg_code == 0b110) ? 4 : 0;
+
+        env.cpu.decode();
+
+        CPUSnapshot cpu_after = env.take_snapshot();
+
+        CPUSnapshot cpu_expected = cpu_before;
+        CPUSnapshot cpu_actual = cpu_after;
+
+        cpu_expected.a = static_cast<uint8_t>(a_test_value + r8_test_value);
+        cpu_expected.f = static_cast<uint8_t>(
+            add_a_r8_edge_case[reg_code].expected_z_flag << 7 | 0 << 6 |
+            add_a_r8_edge_case[reg_code].expected_h_flag << 5 |
+            add_a_r8_edge_case[reg_code].expected_c_flag << 4);
+
+        cpu_expected.pc = test_pc + 1;
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(cpu_actual, cpu_expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_add_a_r8(): t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_decode_ld_r8_r8() {
     TestEnv env;
 
@@ -5386,6 +5444,7 @@ void test_cpu_decode() {
     test_cpu_decode_rra();
     test_cpu_decode_cpl();
     test_cpu_decode_ccf();
+    test_cpu_decode_add_a_r8();
 }
 
 //------------------------------------------------------------------------------

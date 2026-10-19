@@ -950,4 +950,20 @@ void CPU::decode() {
         src_reg_code = decode_r8_source(opcode);
         ld_r8_r8(dest_reg_code, src_reg_code);
     }
+
+    // add_a_r8()
+    switch(opcode) {
+    case 0x80:
+    case 0x81:
+    case 0x82:
+    case 0x83:
+    case 0x84:
+    case 0x85:
+    case 0x86:
+    case 0x87:
+	src_reg_code = decode_r8_source(opcode);
+	add_a_r8(src_reg_code);
+    default:
+	break;
+    }
 }
