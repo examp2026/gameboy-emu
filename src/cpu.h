@@ -97,6 +97,7 @@ class CPU {
     void ccf();
 
     void add_a_r8(uint8_t reg_code);
+    void sub_a_r8(uint8_t reg_code);
 
     void tick(uint16_t delta);
     void internal_cycle();

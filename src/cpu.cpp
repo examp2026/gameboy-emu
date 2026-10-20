@@ -709,6 +709,26 @@ void CPU::add_a_r8(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
+void CPU:: sub_a_r8(uint8_t reg_code) {
+
+    uint8_t value = get_r8(reg_code);
+
+    bool h = (A & 0x0F) < (value & 0x0F);
+
+    bool c = (A < value);
+    
+    uint8_t result = static_cast<uint8_t>(A - value);
+
+    A = result;
+
+    bool z = (A == 0);
+    bool n = true;
+
+    setF(z, n, h, c);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
