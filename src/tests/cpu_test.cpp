@@ -3785,7 +3785,7 @@ void test_cpu_ld_r8_r8() {
 
 void test_cpu_add_a_r8() {
 
-    for (uint8_t reg_code = 0b000; reg_code <= 0b111; ++reg_code) {
+    for (uint8_t reg_code = 0b000; reg_code <= 0b110; ++reg_code) {
         TestEnv env;
 
         char ctx[64];
@@ -3825,6 +3825,36 @@ void test_cpu_add_a_r8() {
         expect_eq(actual_t_cycles, expected_t_cycles,
                   "test_cpu_add_a_r8(): t_cycles");
     }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_add_a_a() {
+
+    TestEnv env;
+
+    poison_state(env);
+    poison_flag(env);
+
+    env.cpu.setF(false, false, false, false);
+
+    env.cpu.set_r8(0b111, 0x01);
+
+    uint8_t expected = 0x02;
+    uint8_t expected_flags = 0x00;
+    uint32_t cycles_before = env.cpu.cycles();
+    uint32_t expected_t_cycles = 0;
+
+    env.cpu.add_a_r8(0b111);
+
+    uint8_t actual = env.cpu.get_r8(0b111);
+    uint8_t actual_flags = env.cpu.getF();
+    uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+    expect_eq(actual, expected, "test_cpu_add_a_a(): value");
+    expect_eq(actual_flags, expected_flags, "test_cpu_add_a_a(): flags");
+    expect_eq(actual_t_cycles, expected_t_cycles,
+              "test_cpu_add_a_a(): t_cycles");
 }
 
 //------------------------------------------------------------------------------
@@ -3959,6 +3989,7 @@ void test_cpu_instructions_load() {
     test_cpu_ccf();
 
     test_cpu_add_a_r8();
+    test_cpu_add_a_a();
     test_cpu_sub_a_r8();
     test_cpu_sub_a_a();
 }
