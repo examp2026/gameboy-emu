@@ -709,7 +709,7 @@ void CPU::add_a_r8(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
-void CPU:: sub_a_r8(uint8_t reg_code) {
+void CPU::sub_a_r8(uint8_t reg_code) {
 
     uint8_t value = get_r8(reg_code);
 
@@ -723,6 +723,22 @@ void CPU:: sub_a_r8(uint8_t reg_code) {
 
     bool z = (A == 0);
     bool n = true;
+
+    setF(z, n, h, c);
+}
+
+//------------------------------------------------------------------------------
+
+void CPU::and_a_r8(uint8_t reg_code) {
+
+    uint8_t value = get_r8(reg_code);
+
+    A = static_cast<uint8_t>(A & value);
+
+    bool z = (A == 0);
+    bool n = false;
+    bool h = true;
+    bool c = false;
 
     setF(z, n, h, c);
 }
