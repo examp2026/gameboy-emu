@@ -1019,4 +1019,21 @@ void CPU::decode() {
     default:
 	break;
     }
+
+    // and_a_r8()
+    switch(opcode) {
+    case 0xA0:
+    case 0xA1:
+    case 0xA2:
+    case 0xA3:
+    case 0xA4:
+    case 0xA5:
+    case 0xA6:
+    case 0xA7:
+	src_reg_code = decode_r8_source(opcode);
+	and_a_r8(src_reg_code);
+	break;
+    default:
+	break;
+    }
 }

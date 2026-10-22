@@ -5537,7 +5537,7 @@ void test_cpu_decode_sub_a_r8() {
         env.cpu.setPC(0xC000);
 
         uint16_t test_pc = env.cpu.getPC();
-        uint8_t test_opcode = static_cast<uint8_t>(9 << 4 | reg_code);
+        uint8_t test_opcode = static_cast<uint8_t>(0x09 << 4 | reg_code);
 
         env.bus.write(test_pc, test_opcode);
 
@@ -5575,6 +5575,67 @@ void test_cpu_decode_sub_a_r8() {
         expect_eq(cpu_actual, cpu_expected, ctx);
         expect_eq(actual_t_cycles, expected_t_cycles,
                   "test_cpu_decode_sub_a_r8(): t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_and_a_r8() {
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b110; ++reg_code) {
+        TestEnv env;
+
+        char ctx[64];
+        std::snprintf(ctx, sizeof(ctx),
+                      "test_cpu_decode_and_a_r8():"
+                      "reg_code=0x%02X, cpu",
+                      reg_code);
+
+        poison_state(env);
+        poison_flag(env);
+
+        env.cpu.setF(false, false, false, false);
+
+        env.cpu.setPC(0xC000);
+
+        uint16_t test_pc = env.cpu.getPC();
+        uint8_t test_opcode = static_cast<uint8_t>(0x0A << 4 | reg_code);
+
+        env.bus.write(test_pc, test_opcode);
+
+        uint8_t a_test_value = and_a_r8_edge_case[reg_code % 4].a;
+        env.cpu.set_r8(0b111, a_test_value);
+
+        if (reg_code == 0b110) {
+            env.cpu.setHL(0xC500);
+        }
+
+        uint8_t r8_test_value = and_a_r8_edge_case[reg_code % 4].r8;
+        env.cpu.set_r8(reg_code, r8_test_value);
+
+        CPUSnapshot cpu_before = env.take_snapshot();
+
+        uint32_t cycles_before = env.cpu.cycles();
+        uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+
+        env.cpu.decode();
+
+        CPUSnapshot cpu_after = env.take_snapshot();
+
+        CPUSnapshot cpu_expected = cpu_before;
+        CPUSnapshot cpu_actual = cpu_after;
+
+        cpu_expected.a = and_a_r8_edge_case[reg_code % 4].expected;
+        cpu_expected.pc = test_pc + 1;
+        cpu_expected.f = static_cast<uint8_t>(
+            and_a_r8_edge_case[reg_code % 4].expected_z_flag << 7 | 0 << 6 |
+            1 << 5 | 0 << 4);
+
+        uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+        expect_eq(cpu_actual, cpu_expected, ctx);
+        expect_eq(actual_t_cycles, expected_t_cycles,
+                  "test_cpu_decode_and_a_r8(): t_cycles");
     }
 }
 
@@ -5717,6 +5778,7 @@ void test_cpu_decode() {
     test_cpu_decode_ccf();
     test_cpu_decode_add_a_r8();
     test_cpu_decode_sub_a_r8();
+    test_cpu_decode_and_a_r8();
 }
 
 //------------------------------------------------------------------------------
