@@ -50,6 +50,7 @@ struct TestEnv {
 struct a_r8_edge_case {
     uint8_t a{};
     uint8_t r8{};
+    uint8_t expected{};
 
     bool expected_z_flag{};
     bool expected_h_flag{};
@@ -57,20 +58,21 @@ struct a_r8_edge_case {
 };
 
 a_r8_edge_case add_a_r8_edge_case[] = {
-    {0x00, 0x01, 0, 0, 0}, {0x10, 0xF1, 0, 0, 1}, {0x01, 0xF, 0, 1, 0},
-    {0x02, 0xFF, 0, 1, 1}, {0x00, 0x00, 1, 0, 0}, {0x10, 0xF0, 1, 0, 1},
-    {0x01, 0xFF, 1, 1, 1}, {0x80, 0x80, 1, 0, 1}};
+    {0x00, 0x01, 0x01, 0, 0, 0}, {0x10, 0xF1, 0x01, 0, 0, 1},
+    {0x01, 0x0F, 0x10, 0, 1, 0}, {0x02, 0xFF, 0x01, 0, 1, 1},
+    {0x00, 0x00, 0x00, 1, 0, 0}, {0x10, 0xF0, 0x00, 1, 0, 1},
+    {0x01, 0xFF, 0x00, 1, 1, 1}, {0x80, 0x80, 0x00, 1, 0, 1}};
 
-a_r8_edge_case sub_a_r8_edge_case[] = {{0x01, 0x00, 0, 0, 0},
-                                       {0x00, 0x10, 0, 0, 1},
-                                       {0x10, 0x01, 0, 1, 0},
-                                       {0x00, 0x01, 0, 1, 1},
-                                       {0x00, 0x00, 1, 0, 0}};
+a_r8_edge_case sub_a_r8_edge_case[] = {{0x01, 0x00, 0x01, 0, 0, 0},
+                                       {0x00, 0x10, 0xF0, 0, 0, 1},
+                                       {0x10, 0x01, 0x0F, 0, 1, 0},
+                                       {0x00, 0x01, 0xFF, 0, 1, 1},
+                                       {0x00, 0x00, 0x00, 1, 0, 0}};
 
-a_r8_edge_case and_a_r8_edge_case[] = {{0x00, 0xFF, 1, 0},
-                                       {0xAA, 0x55, 1, 0},
-                                       {0xCC, 0x0F, 0, 0},
-                                       {0xCC, 0xF0, 0, 0}};
+a_r8_edge_case and_a_r8_edge_case[] = {{0x00, 0xFF, 0x00, 1, 0},
+                                       {0xAA, 0x55, 0x00, 1, 0},
+                                       {0xCC, 0x0F, 0x0C, 0, 0},
+                                       {0xCC, 0xF0, 0xC0, 0, 0}};
 
 //------------------------------------------------------------------------------
 
@@ -3788,9 +3790,16 @@ void test_cpu_ld_r8_r8() {
 
 //------------------------------------------------------------------------------
 
-void test_cpu_add_a_r8() {
+void test_cpu_pook() {
+    std::printf("pook");
+    std::fflush(stdout);
+}
 
-    for (uint8_t reg_code = 0b000; reg_code <= 0b110; ++reg_code) {
+//------------------------------------------------------------------------------
+
+void test_cpu_addr_a_r8() {
+
+    for (uint8_t reg_code = 0b000; reg_code <= 0b111; ++reg_code) {
         TestEnv env;
 
         char ctx[64];
@@ -3818,7 +3827,7 @@ void test_cpu_add_a_r8() {
         CPUSnapshot cpu_expected = cpu_before;
         CPUSnapshot cpu_actual = cpu_after;
 
-        cpu_expected.a = static_cast<uint8_t>(a_test_value + r8_test_value);
+        cpu_expected.a = add_a_r8_edge_case[reg_code].expected;
         cpu_expected.f = static_cast<uint8_t>(
             add_a_r8_edge_case[reg_code].expected_z_flag << 7 | 0 << 6 |
             add_a_r8_edge_case[reg_code].expected_h_flag << 5 |
@@ -3898,7 +3907,7 @@ void test_cpu_sub_a_r8() {
         CPUSnapshot cpu_expected = cpu_before;
         CPUSnapshot cpu_actual = cpu_after;
 
-        cpu_expected.a = static_cast<uint8_t>(a_test_value - r8_test_value);
+        cpu_expected.a = sub_a_r8_edge_case[reg_code % 5].expected;
         cpu_expected.f = static_cast<uint8_t>(
             sub_a_r8_edge_case[reg_code % 5].expected_z_flag << 7 | 1 << 6 |
             sub_a_r8_edge_case[reg_code % 5].expected_h_flag << 5 |
@@ -3978,7 +3987,7 @@ void test_cpu_and_a_r8() {
         CPUSnapshot cpu_expected = cpu_before;
         CPUSnapshot cpu_actual = cpu_after;
 
-        cpu_expected.a = static_cast<uint8_t>(a_test_value & r8_test_value);
+        cpu_expected.a = and_a_r8_edge_case[reg_code % 4].expected;
         cpu_expected.f = static_cast<uint8_t>(
             and_a_r8_edge_case[reg_code % 4].expected_z_flag << 7 | 0 << 6 |
             1 << 5 | 0 << 4);
@@ -4072,12 +4081,14 @@ void test_cpu_instructions_load() {
     test_cpu_cpl();
     test_cpu_ccf();
 
-    test_cpu_add_a_r8();
+    test_cpu_addr_a_r8();
     test_cpu_add_a_a();
     test_cpu_sub_a_r8();
     test_cpu_sub_a_a();
     test_cpu_and_a_r8();
     test_cpu_and_a_a();
+
+    test_cpu_pook();
 }
 
 //------------------------------------------------------------------------------
@@ -5459,12 +5470,13 @@ void test_cpu_decode_rra() {
 
 void test_cpu_decode_add_a_r8() {
 
-    for (uint8_t reg_code = 0b000; reg_code <= 0b111; ++reg_code) {
+    for (uint8_t reg_code = 0b000; reg_code <= 0b110; ++reg_code) {
         TestEnv env;
 
         char ctx[64];
         std::snprintf(ctx, sizeof(ctx),
-                      "test_cpu_add_a_r8():reg_code=0x%02X, cpu", reg_code);
+                      "test_cpu_decode_add_a_r8():reg_code=0x%02X, cpu",
+                      reg_code);
 
         poison_state(env);
         poison_flag(env);
@@ -5497,7 +5509,7 @@ void test_cpu_decode_add_a_r8() {
         CPUSnapshot cpu_expected = cpu_before;
         CPUSnapshot cpu_actual = cpu_after;
 
-        cpu_expected.a = static_cast<uint8_t>(a_test_value + r8_test_value);
+        cpu_expected.a = add_a_r8_edge_case[reg_code].expected;
         cpu_expected.f = static_cast<uint8_t>(
             add_a_r8_edge_case[reg_code].expected_z_flag << 7 | 0 << 6 |
             add_a_r8_edge_case[reg_code].expected_h_flag << 5 |
@@ -5509,7 +5521,7 @@ void test_cpu_decode_add_a_r8() {
 
         expect_eq(cpu_actual, cpu_expected, ctx);
         expect_eq(actual_t_cycles, expected_t_cycles,
-                  "test_cpu_add_a_r8(): t_cycles");
+                  "test_cpu_decode_add_a_r8(): t_cycles");
     }
 }
 
@@ -5665,7 +5677,6 @@ int run_cpu_tests() {
     test_cpu_set_r8();
     test_cpu_set_r8_hl_indirect();
     test_cpu_fetch_basic();
-    test_cpu_decode();
     test_cpu_get_n8();
     test_cpu_get_n16();
     test_cpu_set_r16mem();
@@ -5675,6 +5686,7 @@ int run_cpu_tests() {
     test_cpu_get_r16rp2();
     test_cpu_set_r16rp2();
     test_cpu_instructions_load();
+    test_cpu_decode();
     test_cpu_byte_read();
     test_cpu_byte_write();
 
