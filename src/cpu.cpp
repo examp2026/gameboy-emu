@@ -1052,4 +1052,21 @@ void CPU::decode() {
     default:
 	break;
     }
+
+    // or_a_r8()
+    switch(opcode) {
+    case 0xB0:
+    case 0xB1:
+    case 0xB2:
+    case 0xB3:
+    case 0xB4:
+    case 0xB5:
+    case 0xB6:
+    case 0xB7:
+	src_reg_code = decode_r8_source(opcode);
+	or_a_r8(src_reg_code);
+	break;
+    default:
+	break;
+    }
 }
