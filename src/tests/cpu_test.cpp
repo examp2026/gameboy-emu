@@ -79,6 +79,25 @@ a_r8_edge_case or_a_r8_edge_case[] = {{0x00, 0xFF, 0xFF, 0, 0},
                                       {0xF0, 0x0F, 0xFF, 0, 0},
                                       {0xCC, 0xF0, 0xFC, 0, 0}};
 
+struct carry_a_r8_edge_case {
+    uint8_t a{};
+    uint8_t r8{};
+    bool carry_in{};
+    uint8_t expected{};
+
+    bool expected_z_flag{};
+    bool expected_h_flag{};
+    bool expected_c_flag{};
+};
+
+carry_a_r8_edge_case adc_a_r8_edge_case[] = {
+    {0xFF, 0x0, 0, 0xFF, 0, 0, 0},  {0xFF, 0xF0, 0, 0xEF, 0, 0, 1},
+    {0xEF, 0xF, 0, 0xFE, 0, 1, 0},  {0xFF, 0xFF, 0, 0xFE, 0, 1, 1},
+    {0x0, 0x0, 0, 0x0, 1, 0, 0},    {0xF0, 0x10, 0, 0x0, 1, 0, 1},
+    {0xFF, 0x1, 0, 0x0, 1, 1, 1},   {0xFE, 0x0, 1, 0xFF, 0, 0, 0},
+    {0xFE, 0xF0, 1, 0xEF, 0, 0, 1}, {0xEF, 0xF, 1, 0xFF, 0, 1, 0},
+    {0xFF, 0xFF, 1, 0xFF, 0, 1, 1}, {0xFF, 0x0, 1, 0x0, 1, 1, 1}};
+
 //------------------------------------------------------------------------------
 
 constexpr uint8_t OPCODE_CYCLES[256] = {
@@ -4139,6 +4158,107 @@ void test_cpu_or_a_a() {
 
 //------------------------------------------------------------------------------
 
+void test_cpu_adc_a_r8() {
+    TestEnv env;
+
+    for (int carry = 0; carry <= 1; carry++) {
+        for (uint8_t reg_code = 0; reg_code <= 0b110; reg_code++) {
+            for (int a = 255; a >= 0; --a) {
+                for (int r8 = 255; r8 >= 0; --r8) {
+                    poison_state(env);
+                    poison_flag(env);
+
+                    env.cpu.setF(true, true, true, carry);
+
+                    if (reg_code == 0b110) {
+                        env.cpu.setHL(0xC000);
+                    }
+
+                    uint8_t a_test_value = static_cast<uint8_t>(a);
+                    uint8_t r8_test_value = static_cast<uint8_t>(r8);
+
+                    env.cpu.set_r8(0b111, a_test_value);
+                    env.cpu.set_r8(reg_code, r8_test_value);
+
+                    int raw_sum = a_test_value + r8_test_value + carry;
+                    uint8_t expected_a = static_cast<uint8_t>(raw_sum);
+                    bool z = (expected_a == 0);
+                    bool h =
+                        (a_test_value & 0x0F) + (r8_test_value & 0x0F) + carry >
+                        0x0F;
+                    bool c = raw_sum > 0xFF;
+                    uint8_t expected_flag =
+                        static_cast<uint8_t>(z << 7 | 0 << 6 | h << 5 | c << 4);
+
+                    env.cpu.adc_a_r8(reg_code);
+
+                    uint8_t actual_a = env.cpu.get_r8(0b111);
+                    uint8_t actual_flag = env.cpu.getF();
+
+                    if (actual_a != expected_a ||
+                        actual_flag != expected_flag) {
+                        char ctx[64];
+                        std::snprintf(ctx, sizeof(ctx),
+                                      "test_cpu_adc_a_r8(): "
+                                      "a=%u, r=%u, rc=0x%02X",
+                                      (unsigned int)a, (unsigned int)r8,
+                                      (unsigned int)reg_code);
+
+                        expect_eq(actual_a, expected_a, ctx);
+                        expect_eq(actual_flag, expected_flag, ctx);
+                    }
+                }
+            }
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_adc_a_a() {
+    TestEnv env;
+
+    for (int carry = 0; carry <= 1; carry++) {
+        for (int a = 255; a <= 0; --a) {
+            poison_state(env);
+            poison_flag(env);
+
+            env.cpu.setF(true, true, true, carry);
+
+            uint8_t a_test_value = static_cast<uint8_t>(a);
+
+            env.cpu.set_r8(0b111, a_test_value);
+
+            int raw_sum = a_test_value + a_test_value + carry;
+            uint8_t expected_a = static_cast<uint8_t>(raw_sum);
+            bool z = (expected_a == 0);
+            bool h =
+                (a_test_value & 0x0F) + (a_test_value & 0x0F) + carry > 0x0F;
+            bool c = raw_sum > 0xFF;
+            uint8_t expected_flag =
+                static_cast<uint8_t>(z << 7 | 0 << 6 | h << 5 | c << 4);
+
+            env.cpu.adc_a_r8(0b111);
+
+            uint8_t actual_a = env.cpu.get_r8(0b111);
+            uint8_t actual_flag = env.cpu.getF();
+
+            if (actual_a != expected_a || actual_flag != expected_flag) {
+                char ctx[64];
+                std::snprintf(ctx, sizeof(ctx),
+                              "test_cpu_adc_a_a(): "
+                              "a=%u, r=%u",
+                              (unsigned int)a, (unsigned int)a);
+
+                expect_eq(actual_a, expected_a, ctx);
+                expect_eq(actual_flag, expected_flag, ctx);
+            }
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+
 void test_cpu_instructions_load() {
     test_cpu_ld_r16_n16();
     test_cpu_ld_r16mem_a();
@@ -4199,6 +4319,9 @@ void test_cpu_instructions_load() {
 
     test_cpu_or_a_r8();
     test_cpu_or_a_a();
+
+    test_cpu_adc_a_r8();
+    test_cpu_adc_a_a();
 }
 
 //------------------------------------------------------------------------------
@@ -5816,6 +5939,71 @@ void test_cpu_decode_or_a_r8() {
         expect_eq(cpu_actual, cpu_expected, ctx);
         expect_eq(actual_t_cycles, expected_t_cycles,
                   "test_cpu_decode_or_a_r8(): t_cycles");
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void test_cpu_decode_adc_a_r8() {
+
+    for (int carry = 0; carry <= 1; carry++) {
+        for (uint8_t reg_code = 0b000; reg_code <= 0b110; ++reg_code) {
+            TestEnv env;
+
+            char ctx[64];
+            std::snprintf(ctx, sizeof(ctx),
+                          "test_cpu_decode_adc_a_r8():reg_code=0x%02X, cpu",
+                          reg_code);
+
+            poison_state(env);
+            poison_flag(env);
+
+            env.cpu.setF(false, false, false, false);
+
+            env.cpu.setPC(0xC000);
+
+            if (reg_code == 0b110) {
+                env.cpu.setHL(0xC500);
+            }
+
+            uint8_t test_opcode = static_cast<uint8_t>(0x80 << 4 | reg_code);
+            uint16_t test_pc = env.cpu.getPC();
+
+            env.bus.write(test_pc, test_opcode);
+
+            uint8_t a_test_value = adc_a_r8_edge_case[reg_code].a;
+            env.cpu.set_r8(0b111, a_test_value);
+
+            uint8_t r8_test_value = adc_a_r8_edge_case[reg_code].r8;
+            env.cpu.set_r8(reg_code, r8_test_value);
+
+            CPUSnapshot cpu_before = env.take_snapshot();
+
+            uint32_t cycles_before = env.cpu.cycles();
+            uint32_t expected_t_cycles = OPCODE_CYCLES[test_opcode];
+            //(reg_code == 0b110) ? 4 : 0;
+
+            env.cpu.decode();
+
+            CPUSnapshot cpu_after = env.take_snapshot();
+
+            CPUSnapshot cpu_expected = cpu_before;
+            CPUSnapshot cpu_actual = cpu_after;
+
+            cpu_expected.a = adc_a_r8_edge_case[reg_code].expected;
+            cpu_expected.f = static_cast<uint8_t>(
+                adc_a_r8_edge_case[reg_code].expected_z_flag << 7 | 0 << 6 |
+                adc_a_r8_edge_case[reg_code].expected_h_flag << 5 |
+                adc_a_r8_edge_case[reg_code].expected_c_flag << 4);
+
+            cpu_expected.pc = test_pc + 1;
+
+            uint32_t actual_t_cycles = env.cpu.cycles() - cycles_before;
+
+            expect_eq(cpu_actual, cpu_expected, ctx);
+            expect_eq(actual_t_cycles, expected_t_cycles,
+                      "test_cpu_decode_adc_a_r8(): t_cycles");
+        }
     }
 }
 

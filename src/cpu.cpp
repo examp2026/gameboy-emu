@@ -761,6 +761,23 @@ void CPU::or_a_r8(uint8_t reg_code) {
 
 //------------------------------------------------------------------------------
 
+void CPU::adc_a_r8(uint8_t reg_code) {
+    uint8_t value = get_r8(reg_code);
+    bool carry = get_flag_c();
+    uint16_t result = static_cast<uint16_t>(A + value + carry);
+
+    bool h = (A & 0x0F) + (value & 0x0F) + carry > 0x0F;
+    
+    A = static_cast<uint8_t>(result);
+
+    bool c = (result > 0xFF);
+    bool z = (A == 0);
+
+    setF(z, false, h, c);
+}
+
+//------------------------------------------------------------------------------
+
 uint32_t CPU::cycles() { return t_cycles; }
 
 //------------------------------------------------------------------------------
@@ -1065,6 +1082,22 @@ void CPU::decode() {
     case 0xB7:
 	src_reg_code = decode_r8_source(opcode);
 	or_a_r8(src_reg_code);
+	break;
+    default:
+	break;
+    }
+
+    // adc_a_r8()
+    switch(opcode) {
+    case 0x89:
+    case 0x8A:
+    case 0x8B:
+    case 0x8C:
+    case 0x8D:
+    case 0x8E:
+    case 0x8F:
+	src_reg_code = decode_r8_source(opcode);
+	adc_a_r8(src_reg_code);
 	break;
     default:
 	break;
